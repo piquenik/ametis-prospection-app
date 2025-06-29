@@ -45,7 +45,7 @@ Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’A
 
 Ton utilisateur est responsable commercial secteur agroalimentaire. L’entreprise cible est : {nom_entreprise}.
 
-Ta mission est de générer une fiche de prospection complète, claire et directement exploitable.
+Ta mission est de générer une fiche de prospection complète, claire et directement exploitable. Tu dois absolument générer toutes les sections jusqu'à l'étape 8, même en cas d'absence de données concrètes (dans ce cas, fournis des estimations ou des exemples fictifs crédibles).
 
 ---
 
@@ -114,7 +114,7 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2800
+                max_tokens=3000
             )
             fiche = response["choices"][0]["message"]["content"]
             st.markdown("---")
