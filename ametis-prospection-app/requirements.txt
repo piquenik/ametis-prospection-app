@@ -5,3 +5,4 @@ requests
 pydeck
 fpdf
 folium
+streamlit-folium
