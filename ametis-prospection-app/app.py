@@ -166,5 +166,35 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
+from fpdf import FPDF
+import tempfile
+
+# Si une fiche a été générée, afficher l'option d'export PDF
+if 'fiche' in locals() and fiche:
+    st.markdown("📄 **Exporter la fiche au format PDF**")
+    
+    if st.button("📥 Télécharger le PDF"):
+        try:
+            # Création PDF
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.set_font("Arial", size=12)
+
+            for line in fiche.split('\n'):
+                pdf.multi_cell(0, 10, line)
+
+            # Sauvegarde dans fichier temporaire
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+                pdf.output(tmpfile.name)
+                tmpfile.seek(0)
+                st.download_button(
+                    label="📄 Télécharger le fichier PDF",
+                    data=tmpfile,
+                    file_name=f"fiche_prospection_{nom_entreprise.replace(' ', '_')}.pdf",
+                    mime="application/pdf"
+                )
+        except Exception as e:
+            st.error(f"Erreur lors de la génération du PDF : {e}")
 else:
     st.info("Entrez un nom d'entreprise pour générer une fiche.")
