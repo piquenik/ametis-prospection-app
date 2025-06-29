@@ -63,7 +63,6 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
 - Marchés visés (GMS, export, RHF...)
 - Certifications ou labels (Bio, IFS, BRC...)
 - Contraintes industrielles connues (traçabilité, automatisation, hygiène...)
--Chiffre d'affaire de l'année N-1
 
 📰 3. Actualités récentes pertinentes :
 - Innovations, investissements, recrutement, salon, croissance, certifications...
@@ -117,7 +116,20 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
   • La commune  
   • L’intérêt potentiel pour Ametis.eu
 
-  Genere une carte Maps incluant les entreprises proposées
+  Genere une carte Maps incluant les entreprises proposées sur la carte .
+
+  🔢 9. Chiffre d’affaires estimé (année N-1 ou dernière connue) :
+- Recherche et indique le chiffre d'affaires annuel le plus récent disponible pour l’entreprise (idéalement N-1).
+- Si la donnée est publique, mentionne :
+  - Le montant, la source (ex. : Pappers, société.com, rapport annuel, article)
+  - Et l’année de référence (ex. : exercice 2022, publication 2024).
+- ⚠️ Si aucune donnée fiable n’est trouvée :
+  - Mentionne clairement : “Chiffre d'affaires non disponible publiquement”
+  - Et propose une estimation crédible basée sur :
+    - l’effectif,
+    - le secteur d’activité,
+    - le positionnement marché (GMS, B2B, RHF…),
+    - des entreprises similaires connues.
 
 ⚠️ Si aucune donnée n’est disponible, crée une **liste fictive crédible**, clairement signalée comme simulée.
 Tu dois absolument générer l’étape 8, même si les données sont estimées ou fictives”.
