@@ -1,11 +1,6 @@
 import streamlit as st
 import openai
 import os
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut
-import pandas as pd
-import folium
-from streamlit_folium import st_folium
 
 # Configuration API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -24,8 +19,7 @@ Chaque fiche inclut :
 - Les contacts clés (production, technique, achats, qualité)
 - Un email de prospection combiné (production + qualité)
 - Des données contextuelles : criticité du besoin, profil client, budget estimé, stratégie d’approche
-- Des signaux d’opportunité supplémentaires exploitables (salons, partenaires, changement d’équipe…)
-- Une suggestion d'autres industriels proches pour démarchage ciblé avec carte interactive
+- Une carte et suggestions d'entreprises voisines dans un rayon de 50 km
 """)
 
 # Mot de passe obligatoire
@@ -41,76 +35,71 @@ nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
 
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
-    Tu es un assistant IA expert en prospection commerciale B2B, dédié à l’entreprise Ametis.eu, spécialisée dans :
-    • la traçabilité industrielle,
-    • les étiqueteuses et imprimantes industrielles,
-    • les consommables (étiquettes, rubans transfert thermique),
-    • l’intégration ERP/WMS et solutions logicielles sur-mesure,
-    • le mobilier logistique mobile (postes de travail, imprimantes embarquées…),
-    • les environnements agroalimentaires exigeants (humidité, nettoyage, normes IFS/BRC…).
+Tu es un assistant IA expert en prospection commerciale B2B, dédié à l’entreprise Ametis.eu, spécialisée dans :
+• la traçabilité industrielle,
+• les étiqueteuses et imprimantes industrielles,
+• les consommables (étiquettes, rubans transfert thermique),
+• l’intégration ERP/WMS et solutions logicielles sur-mesure,
+• le mobilier logistique mobile (postes de travail, imprimantes embarquées…),
+• les environnements agroalimentaires exigeants (humidité, nettoyage, normes IFS/BRC…).
 
-    Voici le nom de l’entreprise à traiter : {nom_entreprise}
+Voici le nom de l’entreprise à traiter : {nom_entreprise}
 
-    Tu dois fournir une fiche de prospection enrichie structurée comme suit :
+Tu dois fournir une **fiche de prospection enrichie structurée** comme suit :
 
-    📇 1. Coordonnées complètes :
-    - Adresse postale
-    - Téléphone général
-    - Email public (si disponible)
-    - Effectif estimé
-    - Site Internet (si disponible)
-    - Logo de l’entreprise (lien direct vers l’image si trouvable)
+📇 1. Coordonnées complètes :
+- Adresse postale
+- Téléphone général
+- Email public (si disponible)
+- Effectif estimé
+- Site Internet (si disponible)
+- Logo de l’entreprise (lien direct vers l’image si trouvable)
 
-    🏭 2. Présentation synthétique (5 lignes max) :
-    - Fabricant / distributeur / transformateur ?
-    - Produits ou services proposés
-    - Marchés visés
-    - Certifications ou labels
-    - Contraintes industrielles identifiées (traçabilité, nettoyage, automatisation…)
+🏭 2. Présentation synthétique (5 lignes max) :
+- Fabricant / distributeur / transformateur ?
+- Produits ou services proposés
+- Marchés visés
+- Certifications ou labels
+- Contraintes industrielles identifiées (traçabilité, nettoyage, automatisation…)
 
-    📰 3. Actualités pertinentes :
-    - Innovations, investissements, développement durable, salons, recrutements, certifications
-    - Inclure au moins 1 lien source fiable
-    - Si aucune actualité, fournir une analyse métier utile à la prospection
+📰 3. Actualités pertinentes :
+- Innovations, investissements, développement durable, salons, recrutements, certifications
+- Inclure au moins 1 lien source fiable
+- Si aucune actualité, fournir une analyse métier utile à la prospection
 
-    🔍 4. Analyse contextuelle stratégique :
-    - Criticité ou urgence potentielle du besoin (croissance, automatisation, IFS...)
-    - Typologie de client : groupe, PME, artisan, exportateur, bio, multisite ?
-    - Estimation du budget ou niveau d’investissement (selon taille, CA, automatisation)
-    - Recommandation stratégique : canal de contact, timing idéal, angle d’approche (technique, RSE, logistique, qualité...)
+🔍 4. Analyse contextuelle stratégique :
+- Criticité ou urgence potentielle du besoin (croissance, automatisation, IFS...)
+- Typologie de client : groupe, PME, artisan, exportateur, bio, multisite ?
+- Estimation du budget ou niveau d’investissement (selon taille, CA, automatisation)
+- Recommandation stratégique : canal de contact, timing idéal, angle d’approche (technique, RSE, logistique, qualité...)
 
-    👥 5. Identification des décideurs clés :
-    Recherche croisée sur : LinkedIn, site entreprise, presse, Pappers, annuaires salons
-    - Responsable production / Directeur industriel
-    - Responsable technique / Maintenance
-    - Responsable achats / Approvisionnement
-    - Responsable qualité / QHSE
-    Pour chaque contact : nom, fonction, source estimée, fraîcheur de l'info, niveau de certitude
+👥 5. Identification des décideurs clés :
+Recherche croisée sur : LinkedIn, site entreprise, presse, Pappers, annuaires salons
+- Responsable production / Directeur industriel
+- Responsable technique / Maintenance
+- Responsable achats / Approvisionnement
+- Responsable qualité / QHSE
+Pour chaque contact : nom, fonction, source estimée, fraîcheur de l'info, niveau de certitude
 
-    ✉️ 6. Email de prospection personnalisé combiné (Production + Qualité) :
-    - Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
-    - Introduction personnalisée
-    - Bloc combiné Production + Qualité (automatisation, traçabilité, conformité, réduction des erreurs)
-    - Ajoute si possible un exemple client ou bénéfice constaté
-    - Call-to-action clair (proposition de visio ou appel rapide)
+📍 6. Entreprises voisines pertinentes (dans un rayon de 50 km) :
+- Rechercher ou simuler 2 à 3 entreprises agroalimentaires voisines (PME, sites industriels, IAA)
+- Pour chacune : nom, secteur, site web si possible, et localisation approximative
+- Tu peux t’appuyer sur l’adresse trouvée ou sur la ville d’implantation
 
-    📡 7. Accroches stratégiques ou signaux faibles à exploiter :
-    - Clients ou partenaires industriels connus ?
-    - Multisites ou structure répartie géographiquement ?
-    - Recrutements ou changements de direction récents ?
-    - Contraintes spécifiques (humidité, formats multiples, besoins mobiles) ?
-    - Projets d'automatisation, digitalisation, ou appels d’offres récents ?
-    - Présence annoncée sur des salons professionnels (CFIA, SIAL, etc.) ?
-    - Indice de maturité numérique ou d’ouverture aux solutions connectées ?
+✉️ 7. Email de prospection combiné (Production + Qualité) :
+- Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
+- Introduction personnalisée
+- Bloc combiné Production + Qualité (automatisation, traçabilité, conformité, réduction des erreurs)
+- Ajoute si possible un exemple client ou bénéfice constaté
+- Call-to-action clair (proposition de visio ou appel rapide)
 
-    🗺️ 8. Suggestions de cibles complémentaires à proximité :
-    Si l’adresse de l’entreprise est connue, propose 3 à 5 autres industriels de taille ou secteur similaire dans un rayon de 50 km autour de l’adresse identifiée. Mentionne pour chacun :
-    - Le nom de l'entreprise
-    - La commune
-    - Le secteur ou type de production
-    - Une courte description de leur activité
-    - S'ils sont déjà référencés ou visibles publiquement (site, presse, LinkedIn...)
-    """
+⚠️ IMPORTANT – si les données sont absentes ou incomplètes :
+Tu dois **toujours générer une fiche complète, crédible et utile**, même si les données publiques sont peu disponibles.
+Dans ce cas :
+- Appuie-toi sur les signaux faibles, ou extrapole des données crédibles à partir du nom, du secteur, du type d’entreprise et de la région.
+- Propose un profil d'entreprise plausible : effectif, fonction des interlocuteurs, enjeux probables, etc.
+- Ne jamais dire "aucune info trouvée" ni laisser une section vide.
+"""
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
         try:
@@ -128,24 +117,10 @@ if st.button("Générer la fiche") and nom_entreprise:
             st.markdown(f"**Fiche pour : {nom_entreprise}**")
             st.markdown(fiche)
 
-            if "✉️ 6." in fiche:
-                start = fiche.find("✉️ 6.")
+            if "✉️ 7." in fiche:
+                start = fiche.find("✉️ 7.")
                 email_section = fiche[start:]
                 st.download_button("📋 Copier l’e-mail (en texte)", email_section, file_name="email_prospection.txt")
-
-            # Extraction approximative d'adresse pour démonstration (à remplacer par parsing réel)
-            if "Adresse postale" in fiche:
-                try:
-                    adresse = fiche.split("Adresse postale")[-1].split("\n")[1].strip()
-                    geolocator = Nominatim(user_agent="ametis-prospection")
-                    location = geolocator.geocode(adresse, timeout=10)
-                    if location:
-                        m = folium.Map(location=[location.latitude, location.longitude], zoom_start=10)
-                        folium.Marker([location.latitude, location.longitude], tooltip=nom_entreprise).add_to(m)
-                        st.subheader("🗺️ Localisation de l’entreprise et prospects voisins")
-                        st_folium(m, width=700)
-                except GeocoderTimedOut:
-                    st.warning("Géolocalisation trop lente, carte non affichée.")
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
