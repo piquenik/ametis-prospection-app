@@ -8,8 +8,10 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
+# Logo Ametis (hébergé sur le site Ametis)
+st.image("https://www.ametis.eu/wp-content/uploads/2021/04/logo-ametis.png", width=200)
 
-st.title(" Prospection – Ametis.eu")
+st.title("📇 Assistant Prospection – Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
 """)
@@ -58,6 +60,15 @@ if st.button("Générer la fiche") and nom_entreprise:
     - Innovations, investissements, développement durable, salons, recrutements, certifications
     - Inclure au moins 1 lien source
     - ⚠️ Si aucune actualité pertinente, faire une analyse métier crédible pour identifier un enjeu prospectif lié aux solutions Ametis.eu
+
+    👥 5. Recherches de contacts pertinents :
+    - Fournir les noms, fonctions, et entreprise (si disponibles) des personnes clés suivantes :
+      - Responsable production
+      - Directeur ou responsable technique
+      - Directeur ou responsable des opérations
+      - Responsable des achats
+    - Croiser les informations disponibles publiquement (LinkedIn, site entreprise, presse, etc.)
+    - Indiquer la date estimée de dernière activité ou publication pour valider l’actualité de la donnée
 
     ✉️ 4. Email de prospection personnalisé combiné (Production + Qualité) :
     - 🎯 Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
