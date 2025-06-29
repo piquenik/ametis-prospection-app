@@ -11,7 +11,7 @@ st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 # Logo Ametis (à condition que le fichier soit hébergé sur un CDN ou un lien public)
 st.image("https://www.ametis.eu/wp-content/uploads/2021/04/logo-ametis.png", width=200)
 
-st.title("📇 Assistant Prospection – Ametis.eu")
+st.title(" Prospection – Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
 """)
