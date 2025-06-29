@@ -12,7 +12,7 @@ st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
 st.title("🧐 V1.0 Prospection Ametis.eu")
 st.markdown("""
-Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 )
+Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseille d'indiquer le nom suivi du numero de son departement ( ex : Actibio 53 )
 
 Chaque fiche inclut :
 - Les coordonnées complètes et visuelles (logo + site web)
@@ -170,25 +170,17 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
             st.error(f"Une erreur est survenue : {e}")
 
 # Export PDF
-import re
-
-def nettoyer_texte_unicode(texte):
-    # Supprime les caractères non ASCII (emojis, symboles étendus…)
-    return re.sub(r'[^\x00-\x7F]+', '', texte)
-
 if "fiche" in st.session_state and st.session_state.fiche:
-    st.markdown("📄 **Génerer la fiche au format PDF**")
+    st.markdown("📄 **Exporter la fiche au format PDF**")
 
     if st.button("📥 Télécharger le PDF"):
         try:
-            texte_nettoye = nettoyer_texte_unicode(st.session_state.fiche)
-
             pdf = FPDF()
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.set_font("Arial", size=12)
 
-            for line in texte_nettoye.split('\n'):
+            for line in st.session_state.fiche.split('\n'):
                 pdf.multi_cell(0, 10, line)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
