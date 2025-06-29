@@ -12,7 +12,7 @@ st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
 st.title("🧐 V1.0 Prospection Ametis.eu")
 st.markdown("""
-Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseille d'indiquer le nom suivi du numero de son departement ( ex : Actibio 53 )
+Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 )
 
 Chaque fiche inclut :
 - Les coordonnées complètes et visuelles (logo + site web)
@@ -177,7 +177,7 @@ def nettoyer_texte_unicode(texte):
     return re.sub(r'[^\x00-\x7F]+', '', texte)
 
 if "fiche" in st.session_state and st.session_state.fiche:
-    st.markdown("📄 **Exporter la fiche au format PDF**")
+    st.markdown("📄 **Génerer la fiche au format PDF**")
 
     if st.button("📥 Télécharger le PDF"):
         try:
