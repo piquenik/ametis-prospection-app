@@ -1,4 +1,4 @@
-import streamlit as st
+""import streamlit as st
 import openai
 import os
 
@@ -35,70 +35,74 @@ nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
 
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
-Tu es un assistant IA expert en prospection commerciale B2B, dédié à l’entreprise Ametis.eu, spécialisée dans :
-• la traçabilité industrielle,
-• les étiqueteuses et imprimantes industrielles,
-• les consommables (étiquettes, rubans transfert thermique),
-• l’intégration ERP/WMS et solutions logicielles sur-mesure,
-• le mobilier logistique mobile (postes de travail, imprimantes embarquées…),
-• les environnements agroalimentaires exigeants (humidité, nettoyage, normes IFS/BRC…).
+Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’Ametis.eu, spécialiste de :
+- la traçabilité industrielle,
+- les étiqueteuses et imprimantes industrielles,
+- les consommables (étiquettes, rubans transfert thermique),
+- l’intégration ERP/WMS et solutions logicielles,
+- le mobilier logistique mobile,
+- les environnements agroalimentaires exigeants (humidité, lavage, IFS/BRC).
 
-Voici le nom de l’entreprise à traiter : {nom_entreprise}
+Ton utilisateur est responsable commercial secteur agroalimentaire. L’entreprise cible est : {nom_entreprise}.
 
-Tu dois fournir une **fiche de prospection enrichie structurée** comme suit :
+Ta mission est de générer une fiche de prospection complète, claire et directement exploitable.
 
-📇 1. Coordonnées complètes :
-- Adresse postale
+---
+
+📇 1. Informations de contact :
+- Adresse postale complète
 - Téléphone général
 - Email public (si disponible)
 - Effectif estimé
-- Site Internet (si disponible)
-- Logo de l’entreprise (lien direct vers l’image si trouvable)
+- Site internet (si trouvé)
+- Logo (lien image ou site)
 
 🏭 2. Présentation synthétique (5 lignes max) :
-- Fabricant / distributeur / transformateur ?
-- Produits ou services proposés
-- Marchés visés
-- Certifications ou labels
-- Contraintes industrielles identifiées (traçabilité, nettoyage, automatisation…)
+- Type : fabricant, transformateur, distributeur ?
+- Produits ou services
+- Marchés visés (GMS, export, RHF...)
+- Certifications ou labels (Bio, IFS, BRC...)
+- Contraintes industrielles connues (traçabilité, automatisation, hygiène...)
 
-📰 3. Actualités pertinentes :
-- Innovations, investissements, développement durable, salons, recrutements, certifications
-- Inclure au moins 1 lien source fiable
-- Si aucune actualité, fournir une analyse métier utile à la prospection
+📰 3. Actualités récentes pertinentes :
+- Innovations, investissements, recrutement, salon, croissance, certifications...
+- Inclure 1 lien source fiable minimum
+- Si aucune actualité trouvée, proposer une analyse métier utile (enjeux ou évolution probable)
 
 🔍 4. Analyse contextuelle stratégique :
-- Criticité ou urgence potentielle du besoin (croissance, automatisation, IFS...)
-- Typologie de client : groupe, PME, artisan, exportateur, bio, multisite ?
-- Estimation du budget ou niveau d’investissement (selon taille, CA, automatisation)
-- Recommandation stratégique : canal de contact, timing idéal, angle d’approche (technique, RSE, logistique, qualité...)
+- Urgence ou criticité du besoin (croissance, traçabilité, automatisation...)
+- Profil client : PME, groupe, multisite, bio, artisan...
+- Niveau estimé d’investissement ou budget potentiel (si possible)
+- Conseil sur le bon timing / angle d’approche (technique, RSE, conformité, ergonomie...)
 
 👥 5. Identification des décideurs clés :
-Recherche croisée sur : LinkedIn, site entreprise, presse, Pappers, annuaires salons
-- Responsable production / Directeur industriel
-- Responsable technique / Maintenance
-- Responsable achats / Approvisionnement
-- Responsable qualité / QHSE
-Pour chaque contact : nom, fonction, source estimée, fraîcheur de l'info, niveau de certitude
+- Recherche croisée sur LinkedIn, site, Pappers, presse, annuaires...
+- Cibles : production, maintenance, achats, qualité
+- Pour chaque : nom, fonction, source estimée, niveau de certitude, fraîcheur de l'info
+- Si rien trouvé : générer des profils crédibles selon secteur, taille, structure
 
-📍 6. Entreprises voisines pertinentes (dans un rayon de 50 km) :
-- Rechercher ou simuler 2 à 3 entreprises agroalimentaires voisines (PME, sites industriels, IAA)
-- Pour chacune : nom, secteur, site web si possible, et localisation approximative
-- Tu peux t’appuyer sur l’adresse trouvée ou sur la ville d’implantation
+🌍 6. Suggestions d’entreprises voisines à prospecter :
 
-✉️ 7. Email de prospection combiné (Production + Qualité) :
-- Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
-- Introduction personnalisée
-- Bloc combiné Production + Qualité (automatisation, traçabilité, conformité, réduction des erreurs)
-- Ajoute si possible un exemple client ou bénéfice constaté
-- Call-to-action clair (proposition de visio ou appel rapide)
+À partir de l’adresse de l’entreprise analysée, propose une liste de 3 à 5 entreprises industrielles du même secteur ou d’un secteur complémentaire situées dans un rayon d’environ 50 km (si données disponibles).
 
-⚠️ IMPORTANT – si les données sont absentes ou incomplètes :
-Tu dois **toujours générer une fiche complète, crédible et utile**, même si les données publiques sont peu disponibles.
-Dans ce cas :
-- Appuie-toi sur les signaux faibles, ou extrapole des données crédibles à partir du nom, du secteur, du type d’entreprise et de la région.
-- Propose un profil d'entreprise plausible : effectif, fonction des interlocuteurs, enjeux probables, etc.
-- Ne jamais dire "aucune info trouvée" ni laisser une section vide.
+- Si les données géographiques ou contextuelles sont insuffisantes, fais une estimation crédible basée sur la zone géographique supposée (ex : région, département, bassin industriel).
+- Tu peux utiliser comme base d’inspiration les annuaires d’entreprises (ex : INSEE, Pappers, annuaire-entreprises, salons régionaux ou CFIA).
+- Pour chaque entreprise suggérée, indique :
+  • Le nom
+  • L’activité supposée
+  • La commune ou zone estimée
+  • L’intérêt potentiel pour Ametis.eu
+
+⚠️ Si aucune information fiable n’est disponible, propose tout de même une **liste fictive réaliste mais clairement signalée comme générée à partir de corrélations régionales** (ex : “suggestions basées sur des entreprises agroalimentaires typiques dans le secteur de Laval (53)”).
+
+✉️ 7. Email de prospection combiné Production + Qualité :
+- Objet personnalisé lié à un enjeu identifié
+- Introduction contextualisée
+- Bloc combiné Production + Qualité (automatisation, conformité, réduction des erreurs, traçabilité)
+- Ajouter un cas client ou bénéfice mesurable si pertinent
+- Appel à action clair : visio ou appel proposé
+
+⚠️ Si les données sont absentes ou incomplètes, tu dois SIMULER une fiche complète crédible basée sur le secteur, le type d’entreprise, et la région. Ne JAMAIS rendre une fiche vide.
 """
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
