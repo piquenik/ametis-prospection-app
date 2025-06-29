@@ -8,7 +8,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
-st.title("🧐 Assistant Prospection Ametis.eu")
+st.title("🧐 V1.0 Prospection Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. 
 
