@@ -2,18 +2,32 @@ import streamlit as st
 import openai
 import os
 
+# Configuration API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
+
+# Logo Ametis (à condition que le fichier soit hébergé sur un CDN ou un lien public)
+st.image("https://www.ametis.eu/wp-content/uploads/2021/04/logo-ametis.png", width=200)
+
 st.title("📇 Assistant Prospection – Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
 """)
 
+# Mot de passe obligatoire
+password = st.text_input("🔒 Veuillez entrer le mot de passe pour accéder à l'outil :", type="password")
+CORRECT_PASSWORD = os.getenv("AMETIS_PASS", "Ametis2025")  # peut être défini comme secret Streamlit
+
+if password != CORRECT_PASSWORD:
+    st.warning("Accès restreint – veuillez entrer le mot de passe.")
+    st.stop()
+
+# Champ de saisie de l'entreprise
 nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
 
 if st.button("Générer la fiche") and nom_entreprise:
-
     prompt = f"""
     Tu es un assistant IA expert en prospection commerciale B2B, dédié à l’entreprise Ametis.eu, spécialisée dans :
     • la traçabilité industrielle,
