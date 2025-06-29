@@ -35,7 +35,7 @@ if password != CORRECT_PASSWORD:
     st.stop()
 
 # Champ de saisie de l'entreprise
-nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
+nom_entreprise = st.text_input("Entrez le nom de l'entreprise + departement à analyser")
 
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
