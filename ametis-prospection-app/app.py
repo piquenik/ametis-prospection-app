@@ -114,7 +114,7 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=1800
+                max_tokens=2800
             )
             fiche = response["choices"][0]["message"]["content"]
             st.markdown("---")
