@@ -8,8 +8,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
-# Logo Ametis (à condition que le fichier soit hébergé sur un CDN ou un lien public)
-st.image("https://www.ametis.eu/wp-content/uploads/2021/04/logo-ametis.png", width=200)
 
 st.title(" Prospection – Ametis.eu")
 st.markdown("""
