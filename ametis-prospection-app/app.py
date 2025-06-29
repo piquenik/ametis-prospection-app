@@ -9,6 +9,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
 
+
 st.title("🧐 Assistant Prospection Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
@@ -24,17 +25,6 @@ if password != CORRECT_PASSWORD:
 
 # Champ de saisie de l'entreprise
 nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
-clarification = ""
-
-# Réponse précédente si besoin de précision
-if "clarification_requested" not in st.session_state:
-    st.session_state.clarification_requested = False
-
-if st.session_state.clarification_requested:
-    clarification = st.text_area("✏️ Merci de préciser pour compléter la fiche :")
-    if st.button("🔁 Relancer avec la précision") and clarification:
-        st.session_state.clarification_requested = False
-        nom_entreprise += f"\n\nRéponse de l'utilisateur à la demande de précision : {clarification}"
 
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
@@ -100,12 +90,6 @@ if st.button("Générer la fiche") and nom_entreprise:
     - d’effectuer une recherche manuelle sur LinkedIn avec le nom de l’entreprise + fonction cible
     - ou de consulter les dirigeants légaux listés sur Pappers.fr, en précisant leur nom, rôle juridique et leur date d’enregistrement
 
-    ❓ Si certaines informations importantes sont manquantes ou ambiguës (ex : activité trop floue, type de marché mal identifié, doute sur les contacts), tu dois poser une question claire à l'utilisateur afin de pouvoir compléter correctement ta réponse.
-
-    Commence ta réponse par :
-    “🔍 Pour compléter efficacement cette fiche, j’ai besoin d’une précision : …”
-    et termine la phrase par ta question.
-
     ✉️ 4. Email de prospection personnalisé combiné (Production + Qualité) :
     - 🎯 Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
     - 📌 Introduction personnalisée
@@ -134,9 +118,6 @@ if st.button("Générer la fiche") and nom_entreprise:
                 start = fiche.find("✉️ Email de prospection")
                 email_section = fiche[start:]
                 st.download_button("📋 Copier l’e-mail (en texte)", email_section, file_name="email_prospection.txt")
-
-            if "🔍 Pour compléter efficacement cette fiche" in fiche:
-                st.session_state.clarification_requested = True
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
