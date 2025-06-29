@@ -63,6 +63,7 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
 - Marchés visés (GMS, export, RHF...)
 - Certifications ou labels (Bio, IFS, BRC...)
 - Contraintes industrielles connues (traçabilité, automatisation, hygiène...)
+-Chiffre d'affaire de l'année N-1
 
 📰 3. Actualités récentes pertinentes :
 - Innovations, investissements, recrutement, salon, croissance, certifications...
