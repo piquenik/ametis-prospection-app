@@ -9,7 +9,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
 
-st.title(" Prospection – Ametis.eu")
+
+st.title("😁 Assistant Prospection – Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
 """)
@@ -61,18 +62,29 @@ if st.button("Générer la fiche") and nom_entreprise:
 
     👥 5. Identification des décideurs clés :
 
-Fais une recherche croisée sur toutes les données publiques disponibles sur Internet (LinkedIn, presse, site corporate, communiqués, annuaires) afin d'identifier les noms et fonctions suivants, s’ils sont trouvables publiquement :
+Effectue une recherche croisée sur toutes les données publiques disponibles sur Internet afin d’identifier les décideurs clés suivants :
 
-• Responsable de production / Directeur industriel  
-• Responsable technique / Directeur technique / Maintenance  
-• Responsable des achats  
-• Directeur des opérations / Directeur de site
+• Responsable de production / Directeur de site / Directeur industriel  
+• Responsable technique / Responsable maintenance / Responsable BE  
+• Responsable des achats / Procurement manager / Responsable approvisionnement  
+• Responsable qualité / Responsable QHSE / Responsable contrôle
 
-Pour chaque personne trouvée :
-- indique le nom, le poste exact, et l'entreprise associée  
-- précise la source estimée (ex : LinkedIn, site société, presse)  
-- donne une indication de fraîcheur (ex : “Profil actif en mai 2024”, “publication récente”, etc.)  
-- si le nom n’est pas trouvable, indique-le clairement avec “non trouvé publiquement”
+🔎 Utilise les sources suivantes (si disponibles) :
+- LinkedIn (profils personnels, titres de poste, publications récentes)
+- Page “équipe” ou “contact” du site corporate
+- Communiqués de presse ou actualités professionnelles
+- Annuaire CFIA / salons sectoriels / communiqués régionaux
+- Pappers, societe.com, annuaire-entreprises.data.gouv.fr
+
+📌 Pour chaque contact identifié, indique :
+- le nom complet
+- le poste exact
+- la source estimée (LinkedIn, site officiel, presse…)
+- la localisation (site ou ville principale)
+- la date estimée de dernière actualité visible (ex : publication en mai 2024)
+- un niveau de certitude : 🔵 Confirmé / 🟠 Probable / 🔴 Hypothétique
+
+🚫 Si aucune donnée nominative publique n’est trouvable, génère un profil métier crédible basé sur la taille, le secteur et la typologie d’organisation de l’entreprise.
 
 ✉️ 4. Email de prospection personnalisé combiné (Production + Qualité) :
     - 🎯 Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
