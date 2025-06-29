@@ -4,3 +4,4 @@ geopy
 requests
 pydeck
 fpdf
+folium
