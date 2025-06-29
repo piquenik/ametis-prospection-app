@@ -1,2 +1,6 @@
 streamlit
 openai==0.28
+geopy
+requests
+pydeck
+fpdf
