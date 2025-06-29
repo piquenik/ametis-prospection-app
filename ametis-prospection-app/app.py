@@ -8,7 +8,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
-
 st.title("🧐 Assistant Prospection Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. 
@@ -20,6 +19,7 @@ Chaque fiche inclut :
 - Les contacts clés (production, technique, achats, qualité)
 - Un email de prospection combiné (production + qualité)
 - Des données contextuelles : criticité du besoin, profil client, budget estimé, stratégie d’approche
+- Des signaux d’opportunité supplémentaires exploitables (salons, partenaires, changement d’équipe…)
 """)
 
 # Mot de passe obligatoire
@@ -87,6 +87,15 @@ if st.button("Générer la fiche") and nom_entreprise:
     - Bloc combiné Production + Qualité (automatisation, traçabilité, conformité, réduction des erreurs)
     - Ajoute si possible un exemple client ou bénéfice constaté
     - Call-to-action clair (proposition de visio ou appel rapide)
+
+    📡 7. Accroches stratégiques ou signaux faibles à exploiter :
+    - Clients ou partenaires industriels connus ?
+    - Multisites ou structure répartie géographiquement ?
+    - Recrutements ou changements de direction récents ?
+    - Contraintes spécifiques (humidité, formats multiples, besoins mobiles) ?
+    - Projets d'automatisation, digitalisation, ou appels d’offres récents ?
+    - Présence annoncée sur des salons professionnels (CFIA, SIAL, etc.) ?
+    - Indice de maturité numérique ou d’ouverture aux solutions connectées ?
     """
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
