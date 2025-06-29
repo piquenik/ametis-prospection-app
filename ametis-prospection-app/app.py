@@ -106,7 +106,7 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
 
 🌍 8. Suggestions d’entreprises voisines à prospecter :
 
-À partir de l’adresse de l’entreprise analysée, propose une liste de 5 à 10 entreprises industrielles du même secteur ou d’un secteur complémentaire situées dans un rayon d’environ 50 km.
+À partir de l’adresse de l’entreprise analysée, propose une liste de 5 à 10 entreprises industrielles du même secteur dans les 50 Kilometres  ou d’un secteur complémentaire situées dans un rayon d’environ 50 km.
 
 - Si l’adresse n’est pas trouvée, effectue une estimation crédible (région, département, bassin industriel).
 - Utilise comme inspiration les annuaires publics (INSEE, Pappers, CFIA, etc.).
