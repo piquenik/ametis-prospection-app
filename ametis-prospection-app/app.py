@@ -170,35 +170,25 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
-# Export PDF
-            st.markdown("### \U0001F4E4 Export PDF")
-            email_export = st.text_input("Adresse e-mail pour l'exportation PDF :")
-            if st.button("Envoyer le PDF") and email_export:
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_auto_page_break(auto=True, margin=15)
-                pdf.set_font("Arial", size=10)
-                for line in fiche.splitlines():
-                    pdf.multi_cell(0, 8, line)
+from fpdf import FPDF
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    pdf.output(tmp_file.name)
-                    tmp_file_path = tmp_file.name
+if st.session_state.fiche_prospection:
+    st.markdown("📄 **Exporter la fiche au format PDF**")
+    
+    if st.button("📥 Télécharger le PDF"):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_font("Arial", size=12)
 
-                msg = EmailMessage()
-                msg["Subject"] = f"Fiche de prospection Ametis - {nom_entreprise}"
-                msg["From"] = os.getenv("EMAIL_FROM")
-                msg["To"] = email_export
-                msg.set_content(f"Bonjour,\n\nVeuillez trouver ci-joint la fiche de prospection générée pour l'entreprise {nom_entreprise}.\n\nCordialement,\nAssistant Ametis")
-                with open(tmp_file_path, "rb") as f:
-                    msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=f"fiche_{nom_entreprise}.pdf")
+        for line in st.session_state.fiche_prospection.split('\n'):
+            pdf.multi_cell(0, 10, line)
 
-                with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
-                    smtp.starttls()
-                    smtp.login(os.getenv("EMAIL_FROM"), os.getenv("EMAIL_PASSWORD"))
-                    smtp.send_message(msg)
-                st.success("PDF envoyé avec succès !")
+        pdf_path = "/tmp/fiche_prospection.pdf"
+        pdf.output(pdf_path)
 
+        with open(pdf_path, "rb") as f:
+            st.download_button("📄 Télécharger le fichier PDF", f, file_name="fiche_prospection.pdf")
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
 else:
