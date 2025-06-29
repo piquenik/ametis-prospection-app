@@ -1,6 +1,11 @@
 import streamlit as st
 import openai
 import os
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
 
 # Configuration API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -20,6 +25,7 @@ Chaque fiche inclut :
 - Un email de prospection combiné (production + qualité)
 - Des données contextuelles : criticité du besoin, profil client, budget estimé, stratégie d’approche
 - Des signaux d’opportunité supplémentaires exploitables (salons, partenaires, changement d’équipe…)
+- Une suggestion d'autres industriels proches pour démarchage ciblé avec carte interactive
 """)
 
 # Mot de passe obligatoire
@@ -96,6 +102,14 @@ if st.button("Générer la fiche") and nom_entreprise:
     - Projets d'automatisation, digitalisation, ou appels d’offres récents ?
     - Présence annoncée sur des salons professionnels (CFIA, SIAL, etc.) ?
     - Indice de maturité numérique ou d’ouverture aux solutions connectées ?
+
+    🗺️ 8. Suggestions de cibles complémentaires à proximité :
+    Si l’adresse de l’entreprise est connue, propose 3 à 5 autres industriels de taille ou secteur similaire dans un rayon de 50 km autour de l’adresse identifiée. Mentionne pour chacun :
+    - Le nom de l'entreprise
+    - La commune
+    - Le secteur ou type de production
+    - Une courte description de leur activité
+    - S'ils sont déjà référencés ou visibles publiquement (site, presse, LinkedIn...)
     """
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
@@ -118,6 +132,20 @@ if st.button("Générer la fiche") and nom_entreprise:
                 start = fiche.find("✉️ 6.")
                 email_section = fiche[start:]
                 st.download_button("📋 Copier l’e-mail (en texte)", email_section, file_name="email_prospection.txt")
+
+            # Extraction approximative d'adresse pour démonstration (à remplacer par parsing réel)
+            if "Adresse postale" in fiche:
+                try:
+                    adresse = fiche.split("Adresse postale")[-1].split("\n")[1].strip()
+                    geolocator = Nominatim(user_agent="ametis-prospection")
+                    location = geolocator.geocode(adresse, timeout=10)
+                    if location:
+                        m = folium.Map(location=[location.latitude, location.longitude], zoom_start=10)
+                        folium.Marker([location.latitude, location.longitude], tooltip=nom_entreprise).add_to(m)
+                        st.subheader("🗺️ Localisation de l’entreprise et prospects voisins")
+                        st_folium(m, width=700)
+                except GeocoderTimedOut:
+                    st.warning("Géolocalisation trop lente, carte non affichée.")
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
