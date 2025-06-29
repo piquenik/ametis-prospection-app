@@ -10,7 +10,7 @@ st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
 
 
-st.title("😁 Assistant Prospection – Ametis.eu")
+st.title("😁 Assistant Prospection Ametis.eu")
 st.markdown("""
 Cet assistant vous permet d'obtenir une fiche complète de prospection à partir du nom d'une entreprise.
 """)
@@ -74,7 +74,7 @@ Effectue une recherche croisée sur toutes les données publiques disponibles su
 - Page “équipe” ou “contact” du site corporate
 - Communiqués de presse ou actualités professionnelles
 - Annuaire CFIA / salons sectoriels / communiqués régionaux
-- Pappers, societe.com, annuaire-entreprises.data.gouv.fr
+- Bases publiques : Pappers, societe.com, annuaire-entreprises.data.gouv.fr
 
 📌 Pour chaque contact identifié, indique :
 - le nom complet
@@ -85,6 +85,10 @@ Effectue une recherche croisée sur toutes les données publiques disponibles su
 - un niveau de certitude : 🔵 Confirmé / 🟠 Probable / 🔴 Hypothétique
 
 🚫 Si aucune donnée nominative publique n’est trouvable, génère un profil métier crédible basé sur la taille, le secteur et la typologie d’organisation de l’entreprise.
+
+🧠 Si les informations sont incomplètes ou absentes, indique qu’une investigation complémentaire est conseillée. Propose alors :
+- d’effectuer une recherche manuelle sur LinkedIn avec le nom de l’entreprise + fonction cible
+- ou de consulter les dirigeants légaux listés sur Pappers.fr, en précisant leur nom, rôle juridique et leur date d’enregistrement
 
 ✉️ 4. Email de prospection personnalisé combiné (Production + Qualité) :
     - 🎯 Objet accrocheur (lié à une actualité ou un enjeu métier identifié)
