@@ -167,21 +167,6 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
                 start = fiche.find("✉️ 7.")
                 email_section = fiche[start:]
                 st.download_button("📋 Copier l’e-mail (en texte)", email_section, file_name="email_prospection.txt")
-# Export PDF
-            st.markdown("### \U0001F4E4 Export PDF")
-            email_export = st.text_input("Adresse e-mail pour l'exportation PDF :")
-            if st.button("Envoyer le PDF") and email_export:
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_auto_page_break(auto=True, margin=15)
-                pdf.set_font("Arial", size=10)
-                for line in fiche.splitlines():
-                    pdf.multi_cell(0, 8, line)
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    pdf.output(tmp_file.name)
-                    tmp_file_path = tmp_file.name
-
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
