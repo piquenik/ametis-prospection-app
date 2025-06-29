@@ -1,6 +1,8 @@
 import streamlit as st
 import openai
 import os
+from fpdf import FPDF
+import tempfile
 
 # Configuration API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -140,7 +142,6 @@ Identifie un ou plusieurs événements (salons, foires, webinaires pros, réseau
 
 ⚠️ Si aucune donnée n’est disponible, crée une **liste fictive crédible**, clairement signalée comme simulée.
 Tu dois absolument générer l’étape 8, même si les données sont estimées ou fictives”.
-
 """
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
@@ -155,6 +156,7 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
                 max_tokens=3000
             )
             fiche = response["choices"][0]["message"]["content"]
+            st.session_state.fiche = fiche
             st.markdown("---")
             st.markdown(f"**Fiche pour : {nom_entreprise}**")
             st.markdown(fiche)
@@ -166,31 +168,27 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
-from fpdf import FPDF
-import tempfile
 
-# Si une fiche a été générée, afficher l'option d'export PDF
-if 'fiche' in locals() and fiche:
+# Export PDF
+if "fiche" in st.session_state and st.session_state.fiche:
     st.markdown("📄 **Exporter la fiche au format PDF**")
-    
+
     if st.button("📥 Télécharger le PDF"):
         try:
-            # Création PDF
             pdf = FPDF()
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.set_font("Arial", size=12)
 
-            for line in fiche.split('\n'):
+            for line in st.session_state.fiche.split('\n'):
                 pdf.multi_cell(0, 10, line)
 
-            # Sauvegarde dans fichier temporaire
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
                 pdf.output(tmpfile.name)
                 tmpfile.seek(0)
                 st.download_button(
                     label="📄 Télécharger le fichier PDF",
-                    data=tmpfile,
+                    data=tmpfile.read(),
                     file_name=f"fiche_prospection_{nom_entreprise.replace(' ', '_')}.pdf",
                     mime="application/pdf"
                 )
