@@ -170,17 +170,25 @@ Tu dois absolument générer l’étape 8, même si les données sont estimées 
             st.error(f"Une erreur est survenue : {e}")
 
 # Export PDF
+import re
+
+def nettoyer_texte_unicode(texte):
+    # Supprime les caractères non ASCII (emojis, symboles étendus…)
+    return re.sub(r'[^\x00-\x7F]+', '', texte)
+
 if "fiche" in st.session_state and st.session_state.fiche:
     st.markdown("📄 **Exporter la fiche au format PDF**")
 
     if st.button("📥 Télécharger le PDF"):
         try:
+            texte_nettoye = nettoyer_texte_unicode(st.session_state.fiche)
+
             pdf = FPDF()
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.set_font("Arial", size=12)
 
-            for line in st.session_state.fiche.split('\n'):
+            for line in texte_nettoye.split('\n'):
                 pdf.multi_cell(0, 10, line)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
