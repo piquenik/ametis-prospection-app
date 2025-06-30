@@ -5,31 +5,38 @@ from fpdf import FPDF
 import tempfile
 import re
 
-# Configuration API OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# Configuration de la page
-st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
-
-# Masquer le menu développeur et autres éléments Streamlit
+# Bloc CSS pour masquer le header, footer, bouton Manage App et menu Streamlit
 st.markdown("""
     <style>
         footer, header {visibility: hidden;}
+        [data-testid="stToolbar"] { display: none !important; }
+        #MainMenu {visibility: hidden;}
+        .viewerBadge_container__1QSob {display: none !important;}
     </style>
     <script>
         const interval = setInterval(() => {
             const toolbar = window.parent.document.querySelector('[data-testid="stToolbar"]');
             if (toolbar) {
                 toolbar.style.display = 'none';
+            }
+            const badge = window.parent.document.querySelector('.viewerBadge_container__1QSob');
+            if (badge) {
+                badge.style.display = 'none';
                 clearInterval(interval);
             }
         }, 100);
     </script>
 """, unsafe_allow_html=True)
 
+# Configuration API OpenAI
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Configuration de la page
+st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
+
 st.title("🧐 V1.0 Prospection Ametis.eu")
 st.markdown("""
-Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 )
+Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 ), cela reste des informations d'analyse IA qui faut impérativement vérifier
 
 Chaque fiche inclut :
 - Les coordonnées complètes et visuelles (logo + site web)
@@ -49,35 +56,23 @@ if password != CORRECT_PASSWORD:
     st.warning("Accès restreint – veuillez entrer le mot de passe.")
     st.stop()
 
-# Saisie entreprise + secteur
+# Champ de saisie
 nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
-secteur_cible = st.selectbox("Choisissez le secteur d'activité de l'entreprise :", [
-    "Agroalimentaire",
-    "Pharmaceutique",
-    "Industrie mécanique",
-    "Logistique / Emballage",
-    "Cosmétique",
-    "Autre industrie"
-])
 
-# Bouton génération fiche
+secteur_cible = st.selectbox(
+    "Choisissez le secteur d'activité de l'entreprise :",
+    ["Agroalimentaire", "Pharma / Cosmétique", "Logistique / Emballage", "Electronique / Technique", "Autre industrie"]
+)
+
+# Génération de la fiche
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
-Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’Ametis.eu, spécialisé dans :
-- la traçabilité industrielle,
-- les étiqueteuses et imprimantes industrielles,
-- les consommables (étiquettes, rubans transfert thermique),
-- l’intégration ERP/WMS et solutions logicielles,
-- le mobilier logistique mobile,
-- les environnements industriels exigeants.
+Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’Ametis.eu, spécialisée dans la traçabilité, les étiqueteuses industrielles, les consommables, et l’intégration ERP/WMS. L’entreprise cible est : {nom_entreprise}. Secteur : {secteur_cible}.
 
-Le secteur d’activité de l’entreprise cible est : **{secteur_cible}**.  
-L’entreprise cible s’appelle : **{nom_entreprise}**.
+Génère une fiche complète et directement exploitable même si certaines données doivent être simulées. Ne laisse jamais de section vide.
 
-Ta mission est de générer une fiche de prospection complète, claire et directement exploitable, en suivant les sections ci-dessous, même si certaines données doivent être estimées ou fictives :
-
-[... conserver ici ton prompt complet habituel, étapes 1 à 10, inchangées ...]
-    """
+[...LE RESTE DU PROMPT DE FICHE ICI — ne change rien à cette partie s’il est déjà correct...]
+"""
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
         try:
@@ -104,13 +99,12 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
 
-# Fonction nettoyage pour PDF
+# Export PDF
 def nettoyer_texte_unicode(texte):
     return re.sub(r'[^\x00-\x7F]+', '', texte)
 
-# Export PDF
 if "fiche" in st.session_state and st.session_state.fiche:
-    st.markdown("📄 **Générer la fiche au format PDF**")
+    st.markdown("📄 **Génerer la fiche au format PDF**")
 
     if st.button("📥 Télécharger le PDF"):
         try:
