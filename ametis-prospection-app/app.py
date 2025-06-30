@@ -175,3 +175,13 @@ if "fiche" in st.session_state and st.session_state.fiche:
             st.error(f"Erreur lors de la génération du PDF : {e}")
 else:
     st.info("Entrez un nom d'entreprise pour générer une fiche.")
+
+# Bloc CSS pour cacher le menu Streamlit, header et footer (usage production)
+hide_menu_style = """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_menu_style, unsafe_allow_html=True)
