@@ -184,4 +184,22 @@ hide_menu_style = """
         header {visibility: hidden;}
     </style>
 """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
+# Bloc CSS mis à jour pour cacher le menu, le footer et le header dans Streamlit
+st.markdown("""
+    <style>
+        /* Masquer le menu hamburger */
+        [data-testid="stToolbar"] {
+            visibility: hidden;
+            height: 0%;
+            position: fixed;
+        }
+        /* Masquer le footer */
+        footer {
+            visibility: hidden;
+        }
+        /* Masquer le header */
+        header {
+            visibility: hidden;
+        }
+    </style>
+""", unsafe_allow_html=True)
