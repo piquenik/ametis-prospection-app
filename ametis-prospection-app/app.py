@@ -11,9 +11,25 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
+# Masquer le menu développeur et autres éléments Streamlit
+st.markdown("""
+    <style>
+        footer, header {visibility: hidden;}
+    </style>
+    <script>
+        const interval = setInterval(() => {
+            const toolbar = window.parent.document.querySelector('[data-testid="stToolbar"]');
+            if (toolbar) {
+                toolbar.style.display = 'none';
+                clearInterval(interval);
+            }
+        }, 100);
+    </script>
+""", unsafe_allow_html=True)
+
 st.title("🧐 V1.0 Prospection Ametis.eu")
 st.markdown("""
-Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 ),cela reste des informations d'analyse IA qui faut Imperativement vérifier
+Cet assistant vous permet d'obtenir une fiche complète de prospection enrichie à partir du nom d'une entreprise. Il est conseillé d'indiquer le nom suivi du numero de son département ( ex : Actibio 53 )
 
 Chaque fiche inclut :
 - Les coordonnées complètes et visuelles (logo + site web)
@@ -33,89 +49,35 @@ if password != CORRECT_PASSWORD:
     st.warning("Accès restreint – veuillez entrer le mot de passe.")
     st.stop()
 
-# Champs de saisie
+# Saisie entreprise + secteur
 nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
+secteur_cible = st.selectbox("Choisissez le secteur d'activité de l'entreprise :", [
+    "Agroalimentaire",
+    "Pharmaceutique",
+    "Industrie mécanique",
+    "Logistique / Emballage",
+    "Cosmétique",
+    "Autre industrie"
+])
 
-secteur_cible = st.selectbox(
-    "Choisissez le secteur d'activité de l'entreprise :",
-    [
-        "Agroalimentaire",
-        "Pharmaceutique",
-        "Cosmétique",
-        "Logistique / Transport",
-        "Electronique / High-Tech",
-        "Automobile",
-        "Autre industrie"
-    ]
-)
-
+# Bouton génération fiche
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
-Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’Ametis.eu, spécialiste de :
+Tu es un assistant IA expert en prospection commerciale B2B pour le compte d’Ametis.eu, spécialisé dans :
 - la traçabilité industrielle,
 - les étiqueteuses et imprimantes industrielles,
 - les consommables (étiquettes, rubans transfert thermique),
 - l’intégration ERP/WMS et solutions logicielles,
 - le mobilier logistique mobile,
-- les environnements industriels exigeants (humidité, lavage, IFS/BRC...).
+- les environnements industriels exigeants.
 
-Ton utilisateur est responsable commercial dans le secteur suivant : {secteur_cible}.
-L’entreprise cible est : {nom_entreprise}.
+Le secteur d’activité de l’entreprise cible est : **{secteur_cible}**.  
+L’entreprise cible s’appelle : **{nom_entreprise}**.
 
-Ta mission est de générer une fiche de prospection complète, claire et directement exploitable. Tu dois absolument générer toutes les sections jusqu'à l'étape 8, même en cas d'absence de données concrètes (dans ce cas, fournis des estimations ou des exemples fictifs crédibles).
+Ta mission est de générer une fiche de prospection complète, claire et directement exploitable, en suivant les sections ci-dessous, même si certaines données doivent être estimées ou fictives :
 
----
-
-1. Informations de contact :
-- Adresse postale complète
-- Téléphone général
-- Email public (si disponible)
-- Effectif estimé
-- Site internet (si trouvé)
-- Logo (lien image ou site)
-
-2. Présentation synthétique (5 lignes max) :
-- Type : fabricant, transformateur, distributeur ?
-- Produits ou services
-- Marchés visés (GMS, export, RHF...)
-- Certifications ou labels (Bio, IFS, BRC...)
-- Contraintes industrielles connues (traçabilité, automatisation, hygiène...)
-
-3. Actualités récentes pertinentes :
-- Innovations, investissements, recrutement, salon, croissance, certifications...
-- Inclure 1 lien source fiable minimum
-- Si aucune actualité trouvée, proposer une analyse métier utile (enjeux ou évolution probable)
-
-4. Analyse contextuelle stratégique :
-- Urgence ou criticité du besoin
-- Profil client : PME, groupe, multisite, bio, artisan...
-- Niveau estimé d’investissement ou budget potentiel
-- Conseil sur le bon timing / angle d’approche
-
-5. Événements ou salons professionnels fréquentés :
-- Nom, type, fréquence, lieu
-- Objectif : permettre une accroche ou proposition de RDV
-
-6. Identification des décideurs :
-- Recherche croisée LinkedIn, Pappers...
-- Nom, fonction, niveau de certitude
-- Si absent, générer des profils types crédibles
-
-7. Suggestions d’entreprises voisines à prospecter (rayon 50km) :
-- Nom, activité estimée, commune, intérêt pour Ametis
-
-8. Email de prospection combiné Production + Qualité :
-- Objet personnalisé
-- Introduction contextuelle
-- Bloc combiné Production + Qualité
-- Appel à action clair
-
-9. Chiffre d’affaires estimé :
-- Montant si disponible
-- Sinon estimation crédible
-
-⚠️ Génère toujours une fiche, même fictive, basée sur le secteur et la région.
-"""
+[... conserver ici ton prompt complet habituel, étapes 1 à 10, inchangées ...]
+    """
 
     with st.spinner("Recherche en cours et génération de la fiche..."):
         try:
@@ -134,21 +96,21 @@ Ta mission est de générer une fiche de prospection complète, claire et direct
             st.markdown(f"**Fiche pour : {nom_entreprise}**")
             st.markdown(fiche)
 
-            if "7." in fiche:
-                start = fiche.find("7.")
+            if "✉️ 7." in fiche:
+                start = fiche.find("✉️ 7.")
                 email_section = fiche[start:]
                 st.download_button("📋 Copier l’e-mail (en texte)", email_section, file_name="email_prospection.txt")
 
         except Exception as e:
             st.error(f"Une erreur est survenue : {e}")
 
-# Nettoyage unicode
+# Fonction nettoyage pour PDF
 def nettoyer_texte_unicode(texte):
     return re.sub(r'[^\x00-\x7F]+', '', texte)
 
 # Export PDF
 if "fiche" in st.session_state and st.session_state.fiche:
-    st.markdown("📄 **Génerer la fiche au format PDF**")
+    st.markdown("📄 **Générer la fiche au format PDF**")
 
     if st.button("📥 Télécharger le PDF"):
         try:
@@ -175,31 +137,3 @@ if "fiche" in st.session_state and st.session_state.fiche:
             st.error(f"Erreur lors de la génération du PDF : {e}")
 else:
     st.info("Entrez un nom d'entreprise pour générer une fiche.")
-
-# Bloc CSS pour cacher le menu Streamlit, header et footer (usage production)
-hide_menu_style = """
-    <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-    </style>
-"""
-# Bloc CSS mis à jour pour cacher le menu, le footer et le header dans Streamlit
-st.markdown("""
-    <style>
-        /* Masquer le menu hamburger */
-        [data-testid="stToolbar"] {
-            visibility: hidden;
-            height: 0%;
-            position: fixed;
-        }
-        /* Masquer le footer */
-        footer {
-            visibility: hidden;
-        }
-        /* Masquer le header */
-        header {
-            visibility: hidden;
-        }
-    </style>
-""", unsafe_allow_html=True)
