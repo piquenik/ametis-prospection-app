@@ -77,13 +77,13 @@ Génère une fiche complète et directement exploitable même si certaines donn�
     with st.spinner("Recherche en cours et génération de la fiche..."):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5",
                 messages=[
                     {"role": "system", "content": "Tu es un assistant IA spécialisé en prospection B2B."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=3000
+                max_tokens=1500
             )
             fiche = response["choices"][0]["message"]["content"]
             st.session_state.fiche = fiche
