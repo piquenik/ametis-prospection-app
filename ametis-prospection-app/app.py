@@ -1,85 +1,69 @@
 import streamlit as st
-import openai
-import requests
 import os
+import openai
+from fpdf import FPDF
+import tempfile
+import requests
 
 # Configuration API
 openai.api_key = os.getenv("OPENAI_API_KEY")
 mistral_api_key = os.getenv("MISTRAL_API_KEY")
 
 # Configuration de la page
-st.set_page_config(page_title="Comparateur Mistral vs ChatGPT", layout="centered")
-st.title("🧠 Comparateur IA : ChatGPT vs Mistral")
+st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
+st.title("Assistant Prospection Ametis - Comparateur GPT + Mistral")
 
-st.markdown("""
-Compare les réponses des deux IA pour une même question commerciale, afin de choisir la formulation ou l'argumentaire le plus adapté.
-""")
+# Mot de passe obligatoire
+password = st.text_input("\U0001F512 Veuillez entrer le mot de passe pour accéder à l'outil :", type="password")
+CORRECT_PASSWORD = os.getenv("AMETIS_PASS", "Ametis2025")
+if password != CORRECT_PASSWORD:
+    st.warning("Accès restreint – veuillez entrer le mot de passe.")
+    st.stop()
 
-# Saisie utilisateur
-entreprise = st.text_input("Nom de l'entreprise à analyser (ex : Actibio 53)")
-secteur = st.text_input("Secteur d'activité cible (ex : agroalimentaire, cosmétique, logistique...)", value="agroalimentaire")
+# Formulaire
+nom_entreprise = st.text_input("Entrez le nom de l'entreprise à analyser")
+secteur_cible = st.selectbox("Secteur d'activité de l'entreprise :", [
+    "Agroalimentaire",
+    "Pharmaceutique",
+    "Cosmétique",
+    "Logistique",
+    "Electronique",
+    "Autre"
+])
 
-if st.button("Comparer les IA") and entreprise:
+# Fonction de nettoyage PDF
+import re
+def nettoyer_texte_unicode(texte):
+    return re.sub(r'[^\x00-\x7F]+', '', texte)
 
-    prompt = f"""
-Tu es un assistant IA expert en prospection commerciale B2B pour Ametis.eu, spécialiste de la traçabilité industrielle, des imprimantes et étiqueteuses, et des environnements exigeants.
+# Prompt générique
+def construire_prompt(nom_entreprise, secteur_cible):
+    return f"""
+Tu es un assistant IA expert en prospection commerciale B2B dans le secteur {secteur_cible} pour le compte d’Ametis.eu, spécialiste de :
+- la traçabilité industrielle,
+- les étiqueteuses et imprimantes industrielles,
+- les consommables (étiquettes, rubans transfert thermique),
+- l’intégration ERP/WMS,
+- le mobilier logistique mobile.
 
-Secteur cible : {secteur}
-Entreprise à analyser : {entreprise}
+Entreprise cible : {nom_entreprise}.
 
-Fournis une fiche synthétique de prospection (max 800 tokens) comprenant :
-1. Coordonnées (adresse, téléphone, mail, site)
-2. Présentation activité (4 lignes max)
-3. Actualité ou analyse pertinente
-4. Identification de 2 à 3 décideurs (nom + fonction, si trouvés)
-5. Proposition d'email combiné Production + Qualité (structure pro, appel à action clair)
+Fournis une fiche de prospection synthétique comprenant :
+1. Coordonnées complètes
+2. Présentation en 5 lignes max
+3. Actualités pertinentes (avec lien)
+4. Analyse stratégique (budget, timing, criticité)
+5. Décideurs clés (production + qualité)
+6. Suggestions d'entreprises voisines à prospecter
+7. Proposition d'email personnalisé (Production + Qualité)
+8. Chiffre d’affaires estimé
 """
 
-    st.info("🔄 Génération en cours...")
+# Génération de la fiche
+if st.button("Générer la fiche") and nom_entreprise:
+    prompt = construire_prompt(nom_entreprise, secteur_cible)
+    
+    col1, col2 = st.columns(2)
 
-    # ChatGPT
-    try:
-        chatgpt_response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "Tu es un assistant expert en prospection B2B."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=1000
-        )
-        chatgpt_output = chatgpt_response.choices[0].message.content
-    except Exception as e:
-        chatgpt_output = f"Erreur ChatGPT : {e}"
-
-    # Mistral
-    try:
-        mistral_headers = {
-            "Authorization": f"Bearer {mistral_api_key}",
-            "Content-Type": "application/json"
-        }
-        mistral_data = {
-            "model": "mistral-medium",
-            "messages": [
-                {"role": "system", "content": "Tu es un assistant expert en prospection B2B."},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 1000
-        }
-        mistral_response = requests.post("https://api.mistral.ai/v1/chat/completions", headers=mistral_headers, json=mistral_data)
-        mistral_output = mistral_response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        mistral_output = f"Erreur Mistral : {e}"
-
-    # Affichage
-    st.markdown("## 🤖 Résultat ChatGPT")
-    st.markdown(chatgpt_output)
-
-    st.markdown("---")
-
-    st.markdown("## 🦊 Résultat Mistral")
-    st.markdown(mistral_output)
-
-    st.markdown("---")
-    st.success("Comparaison terminée. Analysez les différences de ton, de pertinence et de style.")
+    with col1:
+        st.markdown("### 
