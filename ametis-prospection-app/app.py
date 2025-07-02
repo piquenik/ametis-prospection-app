@@ -1,8 +1,8 @@
-    # Test direct de l'API DeepSeek (POST réel)
+    # 🧪 Test direct de l'API DeepSeek (POST réel)
     with st.expander("🧪 Test direct DeepSeek API (POST réel)"):
         test_prompt = st.text_area("Prompt à envoyer", "Donne-moi un résumé de l'entreprise ACTIBIO 53 dans le secteur agroalimentaire.")
-        endpoint_to_test = st.selectbox("Choisir un endpoint", API_ENDPOINTS)
-        
+        endpoint_to_test = st.selectbox("Choisir un endpoint à tester", API_ENDPOINTS)
+
         if st.button("🔁 Lancer le test API réel"):
             headers = {
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
@@ -28,8 +28,9 @@
                     st.success("Réponse reçue :")
                     st.markdown(f"```markdown\n{content}\n```")
                 else:
-                    st.error("Erreur API")
+                    st.error("Erreur HTTP")
                     st.code(response.text[:1000])
 
             except Exception as e:
                 st.error(f"Exception levée : {str(e)}")
+                
