@@ -85,7 +85,7 @@ Note : si un contact est introuvable, mentionne explicitement "Non identifié pu
                 "Content-Type": "application/json"
             }
             payload = {
-                "model": "deepseek-reasoner",
+                "model": "deepseek-chat",
                 "messages": [
                     {"role": "user", "content": prompt}
                 ],
