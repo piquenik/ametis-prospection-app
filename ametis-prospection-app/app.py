@@ -1,79 +1,109 @@
-
 import streamlit as st
 import requests
-import time
 import os
+import time
 from fpdf import FPDF
 import tempfile
 import re
 
+# Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
+
+# Variables d'environnement sécurisées (secrets Streamlit)
+API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "")
+APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
+FORCED_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
+
+# Masquer interface Streamlit
+st.markdown("""
+    <style>
+        footer, header {visibility: hidden;}
+        [data-testid="stToolbar"] { display: none !important; }
+        #MainMenu {visibility: hidden;}
+        .viewerBadge_container__1QSob {display: none !important;}
+    </style>
+    <script>
+        const interval = setInterval(() => {
+            const toolbar = window.parent.document.querySelector('[data-testid="stToolbar"]');
+            if (toolbar) {
+                toolbar.style.display = 'none';
+            }
+            const badge = window.parent.document.querySelector('.viewerBadge_container__1QSob');
+            if (badge) {
+                badge.style.display = 'none';
+                clearInterval(interval);
+            }
+        }, 100);
+    </script>
+""", unsafe_allow_html=True)
+
 st.title("🧐 Assistant Prospection Ametis")
 
-# API et endpoints
-API_ENDPOINTS = ["https://api.deepseek.com/v1/chat/completions"]
-API_KEY = os.getenv("DEEPSEEK_API_KEY")
-APP_PASSWORD = os.getenv("APP_PASSWORD", "Ametis2025")
-
-# Auth simple
-password = st.text_input("🔒 Mot de passe requis :", type="password")
+# Authentification
+password = st.text_input("🔒 Veuillez entrer le mot de passe pour accéder à l'outil :", type="password")
 if password != APP_PASSWORD:
+    st.warning("Accès restreint – veuillez entrer le mot de passe.")
     st.stop()
 
-# Saisie utilisateur
-nom_entreprise = st.text_input("Nom de l'entreprise")
-secteur = st.selectbox("Secteur", ["Agroalimentaire", "Pharma / Cosmétique", "Logistique / Emballage", "Electronique / Technique", "Autre industrie"])
+# Formulaire utilisateur
+st.subheader("Nom de l'entreprise")
+nom_entreprise = st.text_input("", placeholder="ex : ACTIBIO 53")
 
-# Prompt enrichi pour DeepSeek
-prompt = f"""
-Tu es un expert en prospection commerciale. Génère une fiche entreprise au format Markdown pour : {nom_entreprise}
-Secteur : {secteur}
+secteur = st.selectbox("Secteur", [
+    "Agroalimentaire", "Pharma / Cosmétique", "Logistique / Emballage",
+    "Electronique / Technique", "Autre industrie"
+])
 
-Structure imposée :
-1. Résumé Synthétique
-2. Description de l'activité (2–3 phrases)
-3. Chiffres clés (si disponibles ou estimés)
-4. Activité & Positionnement
-5. Engagements / Labels / Démarche RSE
-6. Besoins potentiels (traçabilité, étiquetage, automatisation…)
-7. 💼 Contacts utiles (forcés) : responsable qualité, production, technique, achats, marketing (avec nom et fonction ou note “à identifier”)
-8. 🔎 Stratégie de prospection Ametis
+if st.button("Générer la fiche") and nom_entreprise:
+    prompt = f"""
+Tu es un expert en prospection commerciale. Génère une fiche entreprise au format Markdown pour : {nom_entreprise}. Secteur : {secteur}
 
-Respecte strictement cette structure, n’invente pas d’e-mail. Utilise un style professionnel et synthétique. Marque clairement chaque section.
+Structure :
+1. Résumé synthétique de l’entreprise (1-2 phrases)
+2. Description de l\'activité (2-3 phrases)
+3. Chiffres clés connus ou estimés (effectif, CA...)
+4. Positionnement marché et engagements (durabilité, innovation...)
+5. Contacts clés :
+   | Fonction               | Nom (si connu)       | Source/Note            |
+   |------------------------|----------------------|-------------------------|
+   | Responsable production| ...                  | ...                     |
+   | Responsable qualité   | ...                  | ...                     |
+   | Responsable technique | ...                  | ...                     |
+   | Responsable achats    | ...                  | ...                     |
+   | Responsable marketing | ...                  | ...                     |
+
+Note : si un contact est introuvable, mentionne explicitement "Non identifié publiquement".
 """
 
-# Génération de fiche
-if st.button("Générer la fiche") and nom_entreprise:
-    endpoint = API_ENDPOINTS[0]
-
-    with st.spinner("🧠 Réflexion en cours, via : " + endpoint):
+    with st.container():
+        st.markdown(f"""🧠 **Réflexion en cours, via :** [{FORCED_ENDPOINT}]({FORCED_ENDPOINT})""")
         progress = st.progress(0)
-        for i in range(20):
-            time.sleep(0.05)
-            progress.progress((i + 1) * 5)
-
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "deepseek-chat",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 1500
-        }
 
         try:
-            r = requests.post(endpoint, headers=headers, json=payload, timeout=30)
-            st.markdown(f"🛰️ Code HTTP : {r.status_code}")
-            if r.status_code == 200:
-                content = r.json()["choices"][0]["message"]["content"]
+            headers = {
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "deepseek-reasoner",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1200
+            }
+
+            with st.spinner("Appel en cours..."):
+                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=30)
+                progress.progress(100)
+
+            if response.status_code == 200:
+                content = response.json()["choices"][0]["message"]["content"]
                 st.success("✅ Contenu reçu :")
                 st.markdown(content)
             else:
-                st.error("❌ Réponse invalide de l'API")
-                st.code(r.text)
+                st.error("❌ Réponse invalide de l’API")
+                st.code(response.text)
+
         except Exception as e:
-            st.error(f"❌ Erreur : {str(e)}")
+            st.error(f"❌ Exception levée : {e}")
