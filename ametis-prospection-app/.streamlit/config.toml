@@ -1,0 +1,36 @@
+# .streamlit/config.toml
+
+[theme]
+# Couleurs officielles Ametis (à adapter selon votre charte)
+primaryColor = "#0055A4"  # Bleu Ametis
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+serverAddress = "localhost"
+gatherUsageStats = false
+
+[runner]
+fastRerun = true
+
+[client]
+caching = true
+showErrorDetails = false  # Pour la sécurité en production
+
+[logger]
+level = "info"
+
+[scheduler]
+enable = false
+
+# Configuration spécifique à l'interface
+[ui]
+showSidebarNavigation = false  # Désactive la sidebar inutile
