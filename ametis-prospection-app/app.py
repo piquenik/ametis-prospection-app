@@ -80,7 +80,7 @@ Contenu demandé :
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.3,
-        "max_tokens": 1400
+        "max_tokens": 3400
     }
 
     try:
