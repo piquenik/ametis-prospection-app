@@ -6,30 +6,13 @@ import tempfile
 import random
 from datetime import datetime
 
-# Configuration des clés
-try:
-    DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
-    APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
-except:
-    st.error("Erreur de configuration")
-    st.stop()
-
-# Configuration de la page
-st.set_page_config(page_title="Prospection Ametis", layout="centered")
-st.markdown("""
-<style>
-#MainMenu, footer, header {visibility: hidden;}
-[data-testid="stToolbar"] {display: none;}
-</style>
-""", unsafe_allow_html=True)
-
-# Endpoints fiables (sans .ai)
+# Configuration des endpoints valides
 API_ENDPOINTS = [
     "https://api.deepseek.com/v1/chat/completions",
     "https://gateway.deepseek.com/chat/completions"
 ]
 
-# Test de connectivité par POST
+# Fonction de test POST d'un endpoint
 def test_endpoint(endpoint):
     try:
         response = requests.post(
@@ -50,7 +33,7 @@ def test_endpoint(endpoint):
     except:
         return False
 
-# Appel API DeepSeek
+# Appel DeepSeek API
 def call_deepseek_api(prompt, endpoint_index=0):
     endpoint = API_ENDPOINTS[endpoint_index]
     try:
@@ -79,9 +62,9 @@ def call_deepseek_api(prompt, endpoint_index=0):
 def generate_fallback_report(company, sector):
     villes = ["Laval", "Angers", "Nantes", "Rennes", "Le Mans"]
     return f"""
-# 🧐 Fiche Prospection: {company}
+# 😮 Fiche Prospection: {company}
 **Secteur:** {sector}  
-**Date de génération:** {datetime.now().strftime("%d/%m/%Y %H:%M")}
+**Date de génération:** {datetime.now().strftime("%d/%m/%Y %H:%M")}  
 **Source:** Mode local Ametis
 
 ## 📌 Coordonnées
@@ -117,10 +100,18 @@ Entreprise spécialisée dans le secteur {sector.lower()}.
 """
 
 # Interface principale
+
 def main():
-    # Authentification
+    try:
+        global DEEPSEEK_API_KEY
+        DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
+        APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
+    except:
+        st.error("Erreur de configuration")
+        st.stop()
+
     if 'authenticated' not in st.session_state or not st.session_state.authenticated:
-        st.title("🔒 Authentification")
+        st.title("🔐 Authentification")
         password = st.text_input("Mot de passe", type="password")
         if st.button("Valider"):
             if password == APP_PASSWORD:
@@ -130,9 +121,8 @@ def main():
                 st.error("Mot de passe incorrect")
         st.stop()
 
-    st.title("🧐 Assistant Prospection Ametis")
+    st.title("😮 Assistant Prospection Ametis")
 
-    # Diagnostic
     with st.expander("🔍 Diagnostic des endpoints API"):
         st.write("Test de connectivité aux endpoints DeepSeek:")
         results = []
@@ -142,7 +132,6 @@ def main():
         st.markdown("\n".join(results))
         st.info("Seuls les endpoints marqués comme 'Actif' seront utilisés")
 
-    # Saisie utilisateur
     company = st.text_input("Nom de l'entreprise", "ACTIBIO 53")
     sector = st.selectbox("Secteur", ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", "Industrie", "Autre"])
 
@@ -161,7 +150,6 @@ La fiche doit contenir:
 
 Sois synthétique et professionnel.
 """
-
         fiche = None
         for i, endpoint in enumerate(API_ENDPOINTS):
             if test_endpoint(endpoint):
@@ -177,7 +165,6 @@ Sois synthétique et professionnel.
         st.session_state.fiche = fiche
         st.markdown(fiche)
 
-    # Export PDF
     if st.session_state.get("fiche"):
         if st.button("📄 Exporter en PDF"):
             pdf = FPDF()
@@ -195,7 +182,6 @@ Sois synthétique et professionnel.
                         mime="application/pdf"
                     )
 
-    # Test manuel API
     with st.expander("🧪 Test direct DeepSeek API (POST réel)"):
         test_prompt = st.text_area("Prompt de test", "Donne-moi un résumé de l'entreprise ACTIBIO 53.")
         test_endpoint = st.selectbox("Endpoint", API_ENDPOINTS)
@@ -226,4 +212,3 @@ Sois synthétique et professionnel.
 
 if __name__ == "__main__":
     main()
-    
