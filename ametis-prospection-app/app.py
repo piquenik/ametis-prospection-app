@@ -77,16 +77,17 @@ def main():
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 300
+            "max_tokens": 800
         }
 
         st.info(f"⏳ Envoi du prompt à l’API DeepSeek : {endpoint}")
         try:
-            response = requests.post(endpoint, headers=headers, json=payload, timeout=15)
+            response = requests.post(endpoint, headers=headers, json=payload, timeout=20)
             st.write(f"📡 Code HTTP : {response.status_code}")
             result = response.json()
             if "choices" in result and result["choices"]:
                 content = result["choices"][0]["message"]["content"]
+                st.session_state.fiche = content
                 st.success("✅ Contenu reçu :")
                 st.markdown(f"```markdown\n{content}\n```")
             else:
@@ -94,6 +95,33 @@ def main():
                 st.code(response.text[:1000])
         except Exception as e:
             st.error(f"❌ Exception levée : {e}")
+
+    if st.session_state.get("fiche"):
+        st.markdown("---")
+        st.markdown("### 📄 Fiche générée")
+        st.markdown(st.session_state.fiche)
+
+        st.download_button(
+            "📋 Copier la fiche (texte)",
+            data=st.session_state.fiche,
+            file_name="fiche_prospection.txt"
+        )
+
+        if st.button("📥 Télécharger en PDF"):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            for line in st.session_state.fiche.split("\n"):
+                pdf.cell(0, 10, line.encode("latin-1", "replace").decode("latin-1"), ln=True)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                pdf.output(tmp.name)
+                with open(tmp.name, "rb") as f:
+                    st.download_button(
+                        "📄 Télécharger le PDF",
+                        data=f.read(),
+                        file_name=f"fiche_{company.replace(' ', '_')}.pdf",
+                        mime="application/pdf"
+                    )
 
 if __name__ == "__main__":
     main()
