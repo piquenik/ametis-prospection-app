@@ -75,7 +75,7 @@ Contenu demandé :
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "deepseek-reasoner",
+        "model": "deepseek-chat",
         "messages": [
             {"role": "user", "content": prompt}
         ],
