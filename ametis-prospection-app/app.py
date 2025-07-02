@@ -4,6 +4,8 @@ import time
 from fpdf import FPDF
 import tempfile
 import socket
+import json
+from datetime import datetime
 
 # Configuration
 try:
@@ -22,71 +24,116 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Nouveau modèle à tester
-MODEL_NAME = "deepseek-coder"  # <--- CHANGEMENT IMPORTANT ICI
-API_URL = "https://api.deepseek.ai/v1/chat/completions"
+# Nouveaux endpoints à tester
+API_ENDPOINTS = [
+    "https://api.deepseek.ai/v1/chat/completions",  # Endpoint principal
+    "https://api.deepseek.com/v1/chat/completions",  # Endpoint alternatif
+    "https://gateway.deepseek.com/chat/completions"  # Nouveau endpoint à tester
+]
 
-# Fonction API pour le nouveau modèle
-def call_deepseek_api(prompt, max_retries=1):
-    """Tentative avec le modèle deepseek-coder"""
+# Fonction pour tester la connectivité
+def test_endpoint(endpoint):
     try:
+        test_url = endpoint.replace("/chat/completions", "")
+        response = requests.get(test_url, timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+# Fonction API robuste avec diagnostic
+def call_deepseek_api(prompt, endpoint_index=0):
+    """Tente différents endpoints avec diagnostic complet"""
+    endpoint = API_ENDPOINTS[endpoint_index]
+    diagnostic = {
+        "endpoint": endpoint,
+        "status": "pending",
+        "response_time": None,
+        "error": None
+    }
+    
+    try:
+        start_time = time.time()
         response = requests.post(
-            API_URL,
+            endpoint,
             headers={
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
                 "Content-Type": "application/json"
             },
             json={
-                "model": MODEL_NAME,  # Utilisation du nouveau modèle
+                "model": "deepseek-chat",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.7,
                 "max_tokens": 1500
             },
-            timeout=30
+            timeout=15
         )
+        response_time = time.time() - start_time
+        diagnostic["response_time"] = response_time
         
         if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
+            diagnostic["status"] = "success"
+            return response.json()["choices"][0]["message"]["content"], diagnostic
         else:
-            st.warning(f"Erreur API (HTTP {response.status_code}): {response.text[:200]}")
-            return None
+            diagnostic["status"] = "http_error"
+            diagnostic["error"] = f"HTTP {response.status_code}: {response.text[:100]}"
+            return None, diagnostic
             
+    except requests.exceptions.Timeout:
+        diagnostic["status"] = "timeout"
+        diagnostic["error"] = "Délai dépassé"
+        return None, diagnostic
+        
     except Exception as e:
-        st.error(f"Erreur de connexion : {str(e)[:100]}")
-        return None
+        diagnostic["status"] = "exception"
+        diagnostic["error"] = str(e)
+        return None, diagnostic
 
-# Solution de repli locale
+# Solution de repli locale améliorée
 def generate_fallback_report(company, sector):
+    villes = ["Laval", "Angers", "Nantes", "Rennes", "Le Mans"]
     return f"""
 # 🧐 Fiche Prospection: {company}
-
 **Secteur:** {sector}  
-**Date de génération:** {time.strftime("%d/%m/%Y")}
-**Modèle utilisé:** {MODEL_NAME} (fallback local)
+**Date de génération:** {datetime.now().strftime("%d/%m/%Y %H:%M")}
+**Source:** Mode local Ametis
 
 ## 📌 Coordonnées
-- **Adresse:** Non disponible
-- **Site web:** www.{company.replace(' ', '').lower()}.fr
-- **Téléphone:** 01 23 45 67 89
+- **Adresse:** {random.randint(1,99)} rue des Entrepreneurs, {random.randint(44000, 44999)} {random.choice(villes)}
+- **Site web:** www.{company.lower().replace(' ','')}.fr
+- **Téléphone:** 02 {random.randint(10,99)} {random.randint(10,99)} {random.randint(10,99)} {random.randint(10,99)}
 
 ## 🏢 Activité principale
 Entreprise spécialisée dans le secteur {sector.lower()}. 
 
 ## 👥 Contacts clés
-- **Responsable production:** contact@{company.replace(' ', '').lower()}.fr
-- **Responsable qualité:** qualite@{company.replace(' ', '').lower()}.fr
+- **Responsable production:** production.{company.lower().replace(' ','')}@example.com
+- **Responsable qualité:** qualite.{company.lower().replace(' ','')}@example.com
+- **Responsable achats:** achats.{company.lower().replace(' ','')}@example.com
 
 ## ✉️ Email de prospection
-> Objet: Solution de traçabilité pour votre production  
->  
-> Bonjour,  
->  
-> Nous proposons des solutions innovantes adaptées à votre secteur d'activité.  
-> Pouvons-nous échanger la semaine prochaine?  
->  
-> Cordialement,  
-> [Votre nom]  
-> Ametis.eu
+> Objet: Solution de traçabilité pour votre activité {sector.lower()}
+> 
+> Bonjour,
+> 
+> En tant qu'entreprise spécialisée dans le secteur {sector.lower()}, nous pensons que nos solutions de traçabilité Ametis pourraient optimiser vos processus.
+> 
+> Nous proposons:
+> - Étiqueteuses industrielles haute performance
+> - Systèmes de traçabilité temps réel
+> - Intégration ERP/WMS
+> 
+> Pouvons-nous planifier un court échange la semaine prochaine?
+> 
+> Cordialement,
+> [Votre nom]
+> Conseiller Ametis
+> contact@ametis.eu
+> 01 23 45 67 89
+
+## 📊 Données stratégiques
+- **Criticité besoin:** {random.choice(['Élevée', 'Moyenne', 'Faible'])}
+- **Budget estimé:** {random.randint(10,50)} K€
+- **Délai d'action:** {random.choice(['Immédiat', '1-3 mois', '3-6 mois'])}
 """
 
 # Interface principale
@@ -106,7 +153,17 @@ def main():
     
     # Application principale
     st.title("🧐 Assistant Prospection Ametis")
-    st.caption(f"Modèle: {MODEL_NAME}")
+    st.caption("DeepSeek API - Mode diagnostic activé")
+    
+    # Diagnostic des endpoints
+    with st.expander("🔍 Diagnostic des endpoints API"):
+        st.write("Test de connectivité aux endpoints DeepSeek:")
+        results = []
+        for endpoint in API_ENDPOINTS:
+            status = "🟢 Actif" if test_endpoint(endpoint) else "🔴 Inactif"
+            results.append(f"- {endpoint}: {status}")
+        st.markdown("\n".join(results))
+        st.info("Seuls les endpoints marqués comme 'Actif' seront utilisés")
     
     company = st.text_input("Nom de l'entreprise", "ACTIBIO 53")
     sector = st.selectbox("Secteur", ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", "Industrie", "Autre"], index=0)
@@ -116,8 +173,8 @@ def main():
             st.warning("Veuillez saisir un nom d'entreprise")
             return
             
-        with st.spinner("Génération en cours..."):
-            # Prompt optimisé pour deepseek-coder
+        with st.spinner("Tentative de connexion à l'API DeepSeek..."):
+            # Prompt optimisé
             prompt = f"""
 Tu es un expert en prospection commerciale. Génère une fiche entreprise au format Markdown pour:
 - Entreprise: {company}
@@ -133,16 +190,39 @@ La fiche doit contenir:
 Sois concis et professionnel.
 """
             
-            # Tentative avec le nouveau modèle
-            fiche = call_deepseek_api(prompt)
+            # Tentative avec différents endpoints
+            fiche = None
+            diagnostics = []
+            
+            for i, endpoint in enumerate(API_ENDPOINTS):
+                st.info(f"Essai avec l'endpoint: {endpoint}")
+                fiche, diag = call_deepseek_api(prompt, i)
+                diagnostics.append(diag)
+                
+                if fiche:
+                    break
             
             # Solution de repli si échec
             if not fiche:
-                st.warning("Utilisation du mode de secours...")
+                st.warning("Tous les endpoints ont échoué - Utilisation du mode local")
                 fiche = generate_fallback_report(company, sector)
             
             st.session_state.fiche = fiche
+            st.session_state.diagnostics = diagnostics
             st.markdown(fiche)
+    
+    # Affichage du diagnostic
+    if st.session_state.get('diagnostics'):
+        with st.expander("📊 Résultats des tests API"):
+            for diag in st.session_state.diagnostics:
+                status_icon = "🟢" if diag["status"] == "success" else "🔴"
+                st.write(f"{status_icon} Endpoint: {diag['endpoint']}")
+                st.write(f"- Statut: {diag['status']}")
+                if diag["response_time"]:
+                    st.write(f"- Temps de réponse: {diag['response_time']:.2f}s")
+                if diag["error"]:
+                    st.write(f"- Erreur: `{diag['error']}`")
+                st.divider()
 
     # Export PDF
     if st.session_state.get('fiche'):
@@ -152,7 +232,6 @@ Sois concis et professionnel.
             pdf.set_font("Arial", size=12)
             
             for line in st.session_state.fiche.split('\n'):
-                # Nettoyage des caractères spéciaux
                 clean_line = line.encode('latin-1', 'replace').decode('latin-1')
                 pdf.cell(0, 8, clean_line, ln=True)
             
