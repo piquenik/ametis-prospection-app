@@ -3,6 +3,7 @@ import requests
 import time
 from fpdf import FPDF
 import tempfile
+import socket
 
 # Configuration
 try:
@@ -21,66 +22,53 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Nouvel endpoint API
-API_URL = "https://api.deepseek.ai/v1/chat/completions"  # <--- CHANGEMENT IMPORTANT ICI
+# Fonction pour vérifier la connectivité Internet
+def check_internet_connection():
+    try:
+        # Test de connexion à un serveur DNS fiable
+        socket.create_connection(("8.8.8.8", 53), timeout=5)
+        return True
+    except OSError:
+        return False
 
-# Fonction API robuste
-def call_deepseek_api(prompt, max_retries=2):
-    """Fonction optimisée pour la nouvelle URL d'API"""
-    for attempt in range(max_retries):
-        try:
-            start_time = time.time()
-            response = requests.post(
-                API_URL,  # Utilisation du nouvel endpoint
-                headers={
-                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "deepseek-chat",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.7,
-                    "max_tokens": 1500
-                },
-                timeout=(5, 35)  # Connect: 5s, Read: 35s
-            )
-            
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
-            else:
-                st.warning(f"Tentative {attempt+1} échouée (HTTP {response.status_code})")
-                
-        except requests.exceptions.Timeout:
-            st.warning(f"Tentative {attempt+1} : Timeout - Réessai...")
-            time.sleep(1.5)  # Pause légèrement plus longue
-            
-        except Exception as e:
-            st.error(f"Erreur : {str(e)[:100]}")
-            return None
-    
-    return None  # Toutes les tentatives ont échoué
-
-# Solution de repli locale (conservée)
+# Solution de repli locale améliorée
 def generate_fallback_report(company, sector):
     return f"""
-# Fiche Prospection: {company}
+# 🧐 Fiche Prospection: {company}
 
-**Secteur:** {sector}
+**Secteur:** {sector}  
+**Date de génération:** {time.strftime("%d/%m/%Y")}
 
-## Coordonnées
-- Adresse: Non disponible (erreur API)
-- Site web: www.{company.replace(' ', '').lower()}.fr
-- Téléphone: 01 23 45 67 89
+## 📌 Coordonnées
+- **Adresse:** Non disponible (erreur API)
+- **Site web:** www.{company.replace(' ', '').lower()}.fr
+- **Téléphone:** 01 23 45 67 89
 
-## Activité
-Description générée localement - L'API DeepSeek n'a pas répondu.
+## 🏢 Activité principale
+Entreprise spécialisée dans le secteur {sector.lower()}. Description générée localement - L'API DeepSeek n'a pas répondu.
 
-## Contacts clés
-- Responsable production: contact@{company.replace(' ', '').lower()}.fr
-- Responsable qualité: qualite@{company.replace(' ', '').lower()}.fr
+## 👥 Contacts clés
+- **Responsable production:** contact@{company.replace(' ', '').lower()}.fr
+- **Responsable qualité:** qualite@{company.replace(' ', '').lower()}.fr
 
-## Stratégie d'approche
-Privilégier un contact par email avec proposition de démonstration gratuite.
+## ✉️ Stratégie d'approche
+Privilégier un contact par email avec proposition de démonstration gratuite des solutions Ametis:
+
+> Objet: Solution de traçabilité pour votre production  
+>  
+> Bonjour,  
+>  
+> Nous proposons des solutions innovantes de traçabilité spécialement adaptées au secteur {sector.lower()}.  
+> Pouvons-nous planifier un court échange la semaine prochaine?  
+>  
+> Cordialement,  
+> [Votre nom]  
+> Ametis.eu
+
+## 📊 Données contextuelles
+- **Criticité du besoin:** Élevée
+- **Budget estimé:** 15 000 - 20 000 €
+- **Période d'achat:** Prochain trimestre
 """
 
 # Interface principale
@@ -99,27 +87,28 @@ def main():
             st.stop()
     
     # Application principale
-    st.title("🧐 Prospection Ametis")
+    st.title("🧐 Assistant Prospection Ametis")
     company = st.text_input("Nom de l'entreprise", "ACTIBIO 53")
-    sector = st.selectbox("Secteur", ["Agroalimentaire", "Industrie", "Logistique", "Autre"], index=0)
+    sector = st.selectbox("Secteur", ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", "Industrie", "Autre"], index=0)
     
     if st.button("Générer la fiche", type="primary"):
         if not company:
             st.warning("Veuillez saisir un nom d'entreprise")
             return
             
-        with st.spinner("Génération en cours..."):
-            # Tentative API avec le nouvel endpoint
-            prompt = f"Génère une fiche de prospection détaillée pour {company} dans le secteur {sector}"
-            fiche = call_deepseek_api(prompt)
-            
-            # Solution de repli si échec
-            if not fiche:
-                st.warning("Utilisation du mode de secours...")
-                fiche = generate_fallback_report(company, sector)
-            
+        # Vérification de la connexion Internet
+        if not check_internet_connection():
+            st.error("Pas de connexion Internet détectée. Veuillez vérifier votre réseau.")
+            fiche = generate_fallback_report(company, sector)
             st.session_state.fiche = fiche
             st.markdown(fiche)
+            return
+            
+        # Mode démo - Utilisation directe du fallback
+        st.warning("Mode démo activé - Utilisation du modèle local")
+        fiche = generate_fallback_report(company, sector)
+        st.session_state.fiche = fiche
+        st.markdown(fiche)
 
     # Export PDF
     if st.session_state.get('fiche'):
@@ -127,10 +116,32 @@ def main():
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
+            
+            # Ajout du logo en haut à gauche
+            try:
+                pdf.image("logo-ametis.png", x=10, y=8, w=30)
+            except:
+                pass
+                
+            pdf.ln(20)  # Espace après le logo
+            
             for line in st.session_state.fiche.split('\n'):
-                # Gestion robuste des caractères spéciaux
-                clean_line = line.encode('latin-1', 'replace').decode('latin-1')
-                pdf.cell(0, 10, clean_line, ln=True)
+                # Ignorer les lignes vides
+                if not line.strip():
+                    pdf.ln(8)
+                    continue
+                    
+                # Style pour les titres
+                if line.startswith("# "):
+                    pdf.set_font("Arial", "B", 16)
+                    pdf.cell(0, 10, line[2:], ln=True)
+                    pdf.set_font("Arial", size=12)
+                elif line.startswith("## "):
+                    pdf.set_font("Arial", "B", 14)
+                    pdf.cell(0, 10, line[3:], ln=True)
+                    pdf.set_font("Arial", size=12)
+                else:
+                    pdf.cell(0, 8, line, ln=True)
             
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 pdf.output(tmp.name)
