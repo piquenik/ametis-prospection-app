@@ -6,7 +6,7 @@ import tempfile
 import re
 
 # Configuration de l'API DeepSeek
-DEEPSEEK_API_KEY = "sk-716052f2bad542bf8d217235db0f22ee"
+DEEPSEEK_API_KEY = "sk-844f7121c69e471da4933807b23a1b01"
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"  # À vérifier selon la doc officielle
 
 # Masquer les éléments Streamlit
