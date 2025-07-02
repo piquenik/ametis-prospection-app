@@ -3,7 +3,6 @@ import requests
 import time
 from fpdf import FPDF
 import tempfile
-import random
 from datetime import datetime
 
 API_ENDPOINTS = [
