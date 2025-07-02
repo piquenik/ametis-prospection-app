@@ -13,12 +13,12 @@ API_ENDPOINTS = [
 ]
 
 # Fonction de test POST d'un endpoint
-def test_endpoint(endpoint):
+def test_endpoint(endpoint, api_key):
     try:
         response = requests.post(
             endpoint,
             headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
@@ -34,13 +34,12 @@ def test_endpoint(endpoint):
         return False
 
 # Appel DeepSeek API
-def call_deepseek_api(prompt, endpoint_index=0):
-    endpoint = API_ENDPOINTS[endpoint_index]
+def call_deepseek_api(prompt, endpoint, api_key):
     try:
         response = requests.post(
             endpoint,
             headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
@@ -62,7 +61,7 @@ def call_deepseek_api(prompt, endpoint_index=0):
 def generate_fallback_report(company, sector):
     villes = ["Laval", "Angers", "Nantes", "Rennes", "Le Mans"]
     return f"""
-# 😮 Fiche Prospection: {company}
+# 🧐 Fiche Prospection: {company}
 **Secteur:** {sector}  
 **Date de génération:** {datetime.now().strftime("%d/%m/%Y %H:%M")}  
 **Source:** Mode local Ametis
@@ -100,21 +99,19 @@ Entreprise spécialisée dans le secteur {sector.lower()}.
 """
 
 # Interface principale
-
 def main():
     try:
-        global DEEPSEEK_API_KEY
-        DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
-        APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
+        api_key = st.secrets["DEEPSEEK_API_KEY"]
+        app_password = st.secrets.get("APP_PASSWORD", "Ametis2025")
     except:
-        st.error("Erreur de configuration")
+        st.error("Erreur de configuration des secrets")
         st.stop()
 
     if 'authenticated' not in st.session_state or not st.session_state.authenticated:
-        st.title("🔐 Authentification")
+        st.title("🔒 Authentification")
         password = st.text_input("Mot de passe", type="password")
         if st.button("Valider"):
-            if password == APP_PASSWORD:
+            if password == app_password:
                 st.session_state.authenticated = True
                 st.rerun()
             else:
@@ -127,7 +124,8 @@ def main():
         st.write("Test de connectivité aux endpoints DeepSeek:")
         results = []
         for endpoint in API_ENDPOINTS:
-            status = "🟢 Actif" if test_endpoint(endpoint) else "🔴 Inactif"
+            actif = test_endpoint(endpoint, api_key)
+            status = "🟢 Actif" if actif else "🔴 Inactif"
             results.append(f"- [{endpoint}]({endpoint}): {status}")
         st.markdown("\n".join(results))
         st.info("Seuls les endpoints marqués comme 'Actif' seront utilisés")
@@ -151,15 +149,14 @@ La fiche doit contenir:
 Sois synthétique et professionnel.
 """
         fiche = None
-        for i, endpoint in enumerate(API_ENDPOINTS):
-            if test_endpoint(endpoint):
-                st.info(f"Essai avec : {endpoint}")
-                fiche, status = call_deepseek_api(prompt, i)
+        for endpoint in API_ENDPOINTS:
+            if test_endpoint(endpoint, api_key):
+                fiche, status = call_deepseek_api(prompt, endpoint, api_key)
                 if fiche:
                     break
 
         if not fiche:
-            st.warning("DeepSeek indisponible. Génération locale.")
+            st.warning("Tous les endpoints ont échoué - utilisation du mode local")
             fiche = generate_fallback_report(company, sector)
 
         st.session_state.fiche = fiche
@@ -184,15 +181,15 @@ Sois synthétique et professionnel.
 
     with st.expander("🧪 Test direct DeepSeek API (POST réel)"):
         test_prompt = st.text_area("Prompt de test", "Donne-moi un résumé de l'entreprise ACTIBIO 53.")
-        test_endpoint = st.selectbox("Endpoint", API_ENDPOINTS)
+        test_endpoint_url = st.selectbox("Endpoint", API_ENDPOINTS)
         if st.button("Lancer le test manuel"):
             try:
                 headers = {
-                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 }
                 response = requests.post(
-                    test_endpoint,
+                    test_endpoint_url,
                     headers=headers,
                     json={
                         "model": "deepseek-chat",
@@ -212,3 +209,4 @@ Sois synthétique et professionnel.
 
 if __name__ == "__main__":
     main()
+    
