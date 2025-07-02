@@ -6,6 +6,7 @@ import tempfile
 import socket
 import json
 from datetime import datetime
+import random  # Module crucial ajouté ici
 
 # Configuration
 try:
@@ -26,9 +27,9 @@ st.markdown("""
 
 # Nouveaux endpoints à tester
 API_ENDPOINTS = [
-    "https://api.deepseek.ai/v1/chat/completions",  # Endpoint principal
-    "https://api.deepseek.com/v1/chat/completions",  # Endpoint alternatif
-    "https://gateway.deepseek.com/chat/completions"  # Nouveau endpoint à tester
+    "https://api.deepseek.ai/v1/chat/completions",
+    "https://api.deepseek.com/v1/chat/completions",
+    "https://gateway.deepseek.com/chat/completions"
 ]
 
 # Fonction pour tester la connectivité
@@ -42,7 +43,6 @@ def test_endpoint(endpoint):
 
 # Fonction API robuste avec diagnostic
 def call_deepseek_api(prompt, endpoint_index=0):
-    """Tente différents endpoints avec diagnostic complet"""
     endpoint = API_ENDPOINTS[endpoint_index]
     diagnostic = {
         "endpoint": endpoint,
@@ -88,7 +88,7 @@ def call_deepseek_api(prompt, endpoint_index=0):
         diagnostic["error"] = str(e)
         return None, diagnostic
 
-# Solution de repli locale améliorée
+# Solution de repli locale CORRIGÉE
 def generate_fallback_report(company, sector):
     villes = ["Laval", "Angers", "Nantes", "Rennes", "Le Mans"]
     return f"""
@@ -98,7 +98,7 @@ def generate_fallback_report(company, sector):
 **Source:** Mode local Ametis
 
 ## 📌 Coordonnées
-- **Adresse:** {random.randint(1,99)} rue des Entrepreneurs, {random.randint(44000, 44999)} {random.choice(villes)}
+- **Adresse:** {random.randint(1,99)} rue des Entrepreneurs, {random.randint(44000,44999)} {random.choice(villes)}
 - **Site web:** www.{company.lower().replace(' ','')}.fr
 - **Téléphone:** 02 {random.randint(10,99)} {random.randint(10,99)} {random.randint(10,99)} {random.randint(10,99)}
 
@@ -195,12 +195,13 @@ Sois concis et professionnel.
             diagnostics = []
             
             for i, endpoint in enumerate(API_ENDPOINTS):
-                st.info(f"Essai avec l'endpoint: {endpoint}")
-                fiche, diag = call_deepseek_api(prompt, i)
-                diagnostics.append(diag)
-                
-                if fiche:
-                    break
+                if test_endpoint(endpoint):  # N'essayer que les endpoints actifs
+                    st.info(f"Essai avec l'endpoint: {endpoint}")
+                    fiche, diag = call_deepseek_api(prompt, i)
+                    diagnostics.append(diag)
+                    
+                    if fiche:
+                        break
             
             # Solution de repli si échec
             if not fiche:
