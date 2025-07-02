@@ -1,60 +1,59 @@
 import streamlit as st
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from fpdf import FPDF
+import tempfile
+import time
 
-# Configuration robuste des requêtes API
-def setup_api_session():
-    session = requests.Session()
-    retries = Retry(
-        total=3,  # Nombre total de tentatives
-        backoff_factor=1,  # Délai entre les tentatives (1, 2, 4 sec)
-        status_forcelist=[408, 429, 500, 502, 503, 504]
+# ======================================
+# CONFIGURATION (avec fallback sécurisé)
+# ======================================
+try:
+    DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
+    APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
+except KeyError as e:
+    st.error(f"Erreur de configuration : Clé secrète manquante ({e})")
+    st.stop()
+
+MODEL = "deepseek-chat"
+API_URL = "https://api.deepseek.com/v1/chat/completions"
+
+# ======================
+# INITIALISATION DE L'APP
+# ======================
+def init_app():
+    """Configure l'application et gère l'authentification"""
+    st.set_page_config(
+        page_title="Prospection Ametis",
+        page_icon="🧐",
+        layout="centered"
     )
-    session.mount('https://', HTTPAdapter(max_retries=retries))
-    return session
-
-# Fonction de génération avec gestion d'erreur améliorée
-def generate_prospection(company, sector):
-    api_session = setup_api_session()
     
-    payload = {
-        "model": "deepseek-chat",
-        "messages": [{
-            "role": "user",
-            "content": f"Génère une fiche de prospection pour {company} ({sector})"
-        }],
-        "temperature": 0.7,
-        "max_tokens": 2000
-    }
-
-    headers = {
-        "Authorization": f"Bearer {st.secrets['DEEPSEEK_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        with st.spinner("Analyse en cours (peut prendre 30 secondes)..."):
-            response = api_session.post(
-                "https://api.deepseek.com/v1/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=45  # Timeout augmenté à 45 secondes
-            )
+    # Masquer les éléments Streamlit inutiles
+    st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stToolbar"] {display: none;}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Gestion de l'authentification
+    if not st.session_state.get('authenticated'):
+        with st.container(border=True):
+            st.title("Authentification requise")
+            password = st.text_input("Mot de passe :", type="password")
             
-        if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
-        else:
-            st.error(f"Erreur API (HTTP {response.status_code}): {response.text}")
-            return None
-            
-    except requests.exceptions.Timeout:
-        st.error("""**Temps d'attente dépassé** - Solutions :
-        - Réessayez dans 1 minute
-        - Vérifiez votre connexion Internet
-        - Contactez le support si le problème persiste
-        """)
-        return None
-    except Exception as e:
-        st.error(f"Erreur inattendue : {str(e)}")
-        return None
+            if st.button("Se connecter"):
+                if password == APP_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Accès refusé")
+        st.stop()
+
+# ... (le reste du code main_interface() et fonctions précédentes reste identique)
+
+if __name__ == "__main__":
+    init_app()
+    main_interface()
