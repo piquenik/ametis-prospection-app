@@ -76,19 +76,18 @@ def main():
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 1800
+            "max_tokens": 800
         }
 
-        st.info(f"⏳ Envoi du prompt à l’API DeepSeek : {endpoint}")
+        st.info(f"🧠 Réflexion en cours, via : {endpoint}")
         try:
             response = requests.post(endpoint, headers=headers, json=payload, timeout=20)
-            st.write(f"📡 Code HTTP : {response.status_code}")
             result = response.json()
             if "choices" in result and result["choices"]:
                 content = result["choices"][0]["message"]["content"]
                 st.session_state.fiche = content
                 st.success("✅ Contenu reçu :")
-                st.markdown(f"```markdown\n{content}\n```")
+                st.markdown(content)
             else:
                 st.warning("Réponse sans contenu exploitable.")
                 st.code(response.text[:1000])
