@@ -94,7 +94,7 @@ Note : si un contact est introuvable, mentionne explicitement "Non identifié pu
             }
 
             with st.spinner("Appel en cours..."):
-                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=30)
+                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=60)
                 progress.progress(100)
 
             if response.status_code == 200:
