@@ -37,7 +37,7 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-st.title("🧐 Assistant Prospection Ametis")
+st.title("🧐 BETA V1,0 Assistant Prospection Ametis")
 
 # Authentification
 password = st.text_input("🔒 Veuillez entrer le mot de passe pour accéder à l'outil :", type="password")
