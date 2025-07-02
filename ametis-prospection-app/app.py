@@ -84,12 +84,16 @@ def main():
         try:
             response = requests.post(endpoint, headers=headers, json=payload, timeout=15)
             st.write(f"📡 Code HTTP : {response.status_code}")
-            st.write("🧾 Réponse brute :")
-            st.code(response.text[:2000])
-
+            result = response.json()
+            if "choices" in result and result["choices"]:
+                content = result["choices"][0]["message"]["content"]
+                st.success("✅ Contenu reçu :")
+                st.markdown(f"```markdown\n{content}\n```")
+            else:
+                st.warning("Réponse sans contenu exploitable.")
+                st.code(response.text[:1000])
         except Exception as e:
             st.error(f"❌ Exception levée : {e}")
 
 if __name__ == "__main__":
     main()
-    
