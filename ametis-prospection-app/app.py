@@ -85,16 +85,16 @@ Note : si un contact est introuvable, mentionne explicitement "Non identifié pu
                 "Content-Type": "application/json"
             }
             payload = {
-                "model": "deepseek-chat",
+                "model": "deepseek-reasoner",
                 "messages": [
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.7,
-                "max_tokens": 1800
+                "max_tokens": 1200
             }
 
             with st.spinner("Appel en cours..."):
-                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=60)
+                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=30)
                 progress.progress(100)
 
             if response.status_code == 200:
