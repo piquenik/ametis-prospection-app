@@ -5,7 +5,7 @@
         
         if st.button("🔁 Lancer le test API réel"):
             headers = {
-                "Authorization": f"Bearer {"sk-844f7121c69e471da4933807b23a1b01"}",
+                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
                 "Content-Type": "application/json"
             }
             payload = {
