@@ -6,104 +6,94 @@ from fpdf import FPDF
 import tempfile
 import re
 
+# Configuration API
+API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "")
+API_TIMEOUT = 60  # Timeout en secondes
+API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
+
 # Configuration de la page
 st.set_page_config(page_title="Assistant Prospection Ametis", layout="centered")
 
-# Variables d'environnement sécurisées (secrets Streamlit)
-API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "")
-APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
-FORCED_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
-
-# Masquer interface Streamlit
+# Masquer header Streamlit
 st.markdown("""
     <style>
         footer, header {visibility: hidden;}
         [data-testid="stToolbar"] { display: none !important; }
         #MainMenu {visibility: hidden;}
-        .viewerBadge_container__1QSob {display: none !important;}
     </style>
-    <script>
-        const interval = setInterval(() => {
-            const toolbar = window.parent.document.querySelector('[data-testid="stToolbar"]');
-            if (toolbar) {
-                toolbar.style.display = 'none';
-            }
-            const badge = window.parent.document.querySelector('.viewerBadge_container__1QSob');
-            if (badge) {
-                badge.style.display = 'none';
-                clearInterval(interval);
-            }
-        }, 100);
-    </script>
 """, unsafe_allow_html=True)
 
-st.title("🧐 BETA V1,0 Assistant Prospection Ametis")
+st.title("🧐 Assistant Prospection Ametis")
 
-# Authentification
+# Mot de passe obligatoire
 password = st.text_input("🔒 Veuillez entrer le mot de passe pour accéder à l'outil :", type="password")
-if password != APP_PASSWORD:
+CORRECT_PASSWORD = st.secrets.get("APP_PASSWORD", "Ametis2025")
+if password != CORRECT_PASSWORD:
     st.warning("Accès restreint – veuillez entrer le mot de passe.")
     st.stop()
 
-# Formulaire utilisateur
-st.subheader("Nom de l'entreprise")
-nom_entreprise = st.text_input("", placeholder="ex : ACTIBIO 53")
-
-secteur = st.selectbox("Secteur", [
-    "Agroalimentaire", "Pharma / Cosmétique", "Logistique / Emballage",
-    "Electronique / Technique", "Autre industrie"
-])
+# Champs
+nom_entreprise = st.text_input("Nom de l'entreprise")
+secteur_cible = st.selectbox("Secteur", [
+    "Agroalimentaire",
+    "Pharma / Cosmétique",
+    "Logistique / Emballage",
+    "Electronique / Technique",
+    "Autre industrie"])
 
 if st.button("Générer la fiche") and nom_entreprise:
     prompt = f"""
-Tu es un expert en prospection commerciale. Génère une fiche entreprise au format Markdown pour : {nom_entreprise}. Secteur : {secteur}
+Tu es un expert en prospection commerciale. Génère une fiche entreprise au format Markdown pour : {nom_entreprise}, secteur : {secteur_cible}.
 
-Structure :
-1. Résumé synthétique de l’entreprise (1-2 phrases)
-2. Description de l\'activité (2-3 phrases)
-3. Chiffres clés connus ou estimés (effectif, CA...)
-4. Positionnement marché et engagements (durabilité, innovation...)
-5. Contacts clés :
-   | Fonction               | Nom (si connu)       | Source/Note            |
-   |------------------------|----------------------|-------------------------|
-   | Responsable production| ...                  | ...                     |
-   | Responsable qualité   | ...                  | ...                     |
-   | Responsable technique | ...                  | ...                     |
-   | Responsable achats    | ...                  | ...                     |
-   | Responsable marketing | ...                  | ...                     |
+Contenu demandé :
+1. Résumé synthétique (ville + activité)
+2. Description de l'activité (2-3 phrases)
+3. Points différenciants, chiffres clés, innovations, labels éventuels
+4. Actualités marquantes ou signaux de transition (ESG, croissance, réorg)
+5. Liste les contacts professionnels trouvables (priorité : Responsable Production, Qualité, Technique, Achats, Maintenance, Marketing)
+6. Faits intéressants à exploiter pour une approche Ametis
+7. Proposition d’e-mail de prospection combiné (technique + qualité)
+    """
 
-Note : si un contact est introuvable, mentionne explicitement "Non identifié publiquement".
-"""
+    st.info(f"🧠 Réflexion en cours, via : [{API_ENDPOINT}]({API_ENDPOINT})")
 
-    with st.container():
-        st.markdown(f"""🧠 **Réflexion en cours, via :** [{FORCED_ENDPOINT}]({FORCED_ENDPOINT})""")
-        progress = st.progress(0)
+    # Barre de progression avec minuteur
+    progress_bar = st.progress(0)
+    timer_placeholder = st.empty()
+    start_time = time.time()
 
-        try:
-            headers = {
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "deepseek-reasoner",
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.7,
-                "max_tokens": 1200
-            }
+    for i in range(61):
+        elapsed = int(time.time() - start_time)
+        progress_bar.progress(min(i / 60, 1.0))
+        timer_placeholder.markdown(f"⏱ Temps écoulé : {elapsed} sec")
+        time.sleep(1)
+        if elapsed >= API_TIMEOUT:
+            break
 
-            with st.spinner("Appel en cours..."):
-                response = requests.post(FORCED_ENDPOINT, headers=headers, json=payload, timeout=60)
-                progress.progress(100)
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "deepseek-reasoner",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 1400
+    }
 
-            if response.status_code == 200:
-                content = response.json()["choices"][0]["message"]["content"]
-                st.success("✅ Contenu reçu :")
-                st.markdown(content)
-            else:
-                st.error("❌ Réponse invalide de l’API")
-                st.code(response.text)
+    try:
+        response = requests.post(API_ENDPOINT, headers=headers, json=payload, timeout=API_TIMEOUT)
+        st.write(f"📡 Code HTTP : {response.status_code}")
 
-        except Exception as e:
-            st.error(f"❌ Exception levée : {e}")
+        if response.status_code == 200:
+            content = response.json()["choices"][0]["message"]["content"]
+            st.success("✅ Contenu reçu :")
+            st.markdown(content)
+        else:
+            st.error("❌ Échec DeepSeek – réponse invalide")
+            st.code(response.text)
+
+    except Exception as e:
+        st.error(f"❌ Exception levée : {e}")
