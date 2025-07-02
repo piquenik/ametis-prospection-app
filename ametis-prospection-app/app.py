@@ -90,7 +90,7 @@ Note : si un contact est introuvable, mentionne explicitement "Non identifié pu
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.7,
-                "max_tokens": 1200
+                "max_tokens": 2200
             }
 
             with st.spinner("Appel en cours..."):
