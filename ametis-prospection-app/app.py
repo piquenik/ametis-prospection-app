@@ -109,7 +109,7 @@ Tu es un expert en prospection commerciale. Génère une fiche entreprise au for
 
 La fiche doit contenir :
 1. Coordonnées complètes (adresse fictive mais plausible)
-2. Description de l\'activité (2-3 phrases)
+2. Description de l'activité (2-3 phrases)
 3. 2 à 3 contacts clés si possibles (production, qualité, technique, marketing, achats)
 4. Un email de prospection court
 5. Analyse des besoins potentiels
