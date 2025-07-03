@@ -16,7 +16,54 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-container {
+        max-width: 900px;import streamlit as st
+import requests
+import os
+import time
+from datetime import datetime, timezone, timedelta
+from fpdf import FPDF
+
+# Configuration de la page avec suppression du menu
+st.set_page_config(
+    page_title="Assistant Prospection Ametis",
+    layout="centered",
+    page_icon="📊",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
+)
+
+# Style CSS personnalisé avec suppression des éléments indésirables
+st.markdown("""
+<style>
+    /* Masquer le menu hamburger et autres éléments */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    .main-container {
         max-width: 900px;
+        padding: 2rem;
+        margin: 0 auto;
+    }
+    .report-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-top: 1rem;
+        word-wrap: break-word;
+    }
+    @media (max-width: 640px) {
+        .main-container {
+            padding: 1rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ... [le reste de votre code existant reste inchangé] ...
         padding: 2rem;
     }
     .report-container {
