@@ -52,7 +52,6 @@ Contenu demandé :
 4. Actualités marquantes ou signaux de transition (ESG, croissance, réorg)
 5. Liste les contacts professionnels trouvables (priorité : Responsable Production, Qualité, Technique, Achats, Maintenance, Marketing)
 6. Faits intéressants à exploiter pour une approche Ametis
-7. Proposition d’e-mail de prospection combiné (technique + qualité)
     """
 
     st.info(f"🧠 Réflexion en cours, via : [{API_ENDPOINT}]({API_ENDPOINT})")
