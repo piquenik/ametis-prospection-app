@@ -5,49 +5,34 @@ import time
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
 
-# Configuration de la page
-st.set_page_config(
-    page_title="Assistant Prospection Ametis",
-    layout="centered",
-    page_icon="📊"
-)
-
-# Style CSS personnalisé
-st.markdown("""
-<style>
-    .main-container {
-        max-width: 900px;import streamlit as st
-import requests
-import os
-import time
-from datetime import datetime, timezone, timedelta
-from fpdf import FPDF
-
-# Configuration de la page avec suppression du menu
+# Configuration de la page avec menu caché
 st.set_page_config(
     page_title="Assistant Prospection Ametis",
     layout="centered",
     page_icon="📊",
     menu_items={
         'Get Help': None,
-        'Report a bug': None,
+        'Report a bug': None, 
         'About': None
     }
 )
 
-# Style CSS personnalisé avec suppression des éléments indésirables
+# Style CSS corrigé et optimisé
 st.markdown("""
 <style>
-    /* Masquer le menu hamburger et autres éléments */
+    /* Cache les éléments par défaut de Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
+    /* Conteneur principal */
     .main-container {
         max-width: 900px;
         padding: 2rem;
         margin: 0 auto;
     }
+    
+    /* Conteneur du rapport */
     .report-container {
         background: #f8f9fa;
         border-radius: 10px;
@@ -55,28 +40,14 @@ st.markdown("""
         margin-top: 1rem;
         word-wrap: break-word;
     }
-    @media (max-width: 640px) {
-        .main-container {
-            padding: 1rem;
-        }
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# ... [le reste de votre code existant reste inchangé] ...
-        padding: 2rem;
-    }
-    .report-container {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 2rem;
-        margin-top: 1rem;
-        word-wrap: break-word;
-    }
+    
+    /* Bouton d'export */
     .export-btn {
         margin-top: 1rem;
         margin-bottom: 2rem;
     }
+    
+    /* Responsive mobile */
     @media (max-width: 640px) {
         .main-container {
             padding: 1rem;
@@ -179,7 +150,7 @@ def create_pdf(entreprise, secteur, contenu):
             pdf.set_font('Arial', '', 10)
         elif clean_line.startswith('- '):
             pdf.cell(10)
-            pdf.cell(200, 8, txt='- ' + clean_line[2:].strip(), ln=1)  # Remplace les puces par des tirets
+            pdf.cell(200, 8, txt='- ' + clean_line[2:].strip(), ln=1)
         else:
             pdf.multi_cell(0, 8, txt=clean_line.strip())
         pdf.ln(2)
