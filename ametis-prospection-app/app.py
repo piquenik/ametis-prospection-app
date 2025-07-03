@@ -5,146 +5,140 @@ import time
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Assistant Prospection Ametis PRO",
+    page_title="Assistant Prospection Ametis",
     layout="centered",
-    page_icon="🔍"
+    page_icon="📊"
 )
-st.title("🔍 Assistant Prospection Ametis PRO")
 
-# --- Authentification ---
-password = st.text_input("🔒 Mot de passe d'accès :", type="password")
-CORRECT_PASSWORD = os.getenv("APP_PASSWORD", "Ametis2025")
+# Style CSS personnalisé
+st.markdown("""
+<style>
+    .main-container {
+        max-width: 900px;
+        padding: 2rem;
+    }
+    .report-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-top: 1rem;
+        word-wrap: break-word;
+    }
+    @media (max-width: 640px) {
+        .main-container {
+            padding: 1rem;
+        }
+        .report-container {
+            padding: 1rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
 
-if password != CORRECT_PASSWORD:
-    st.error("Accès non autorisé - mot de passe incorrect")
+# Authentification
+def check_password():
+    password = st.text_input("🔒 Mot de passe d'accès :", type="password")
+    if password != os.getenv("APP_PASSWORD", "Ametis2025"):
+        st.error("Accès non autorisé")
+        st.stop()
+    return True
+
+if not check_password():
     st.stop()
 
-# --- Paramètres de recherche ---
+# Header
+st.title("📊 Assistant Prospection Ametis")
+st.markdown("---")
+
+# Paramètres
 with st.expander("⚙️ Paramètres avancés", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
-        temperature = st.slider("Précision (température)", 0.1, 1.0, 0.6)
+        temperature = st.slider("Niveau de précision", 0.1, 1.0, 0.6)
     with col2:
-        max_tokens = st.slider("Longueur réponse", 500, 2000, 1200)
+        max_tokens = st.slider("Longueur de réponse", 500, 2000, 1200)
 
-# --- Saisie utilisateur ---
-nom_entreprise = st.text_input("Nom de l'entreprise*")
-secteur_cible = st.selectbox(
-    "Secteur d'activité*",
-    ["Agroalimentaire", "Pharma/Cosmétique", "Logistique/Emballage", 
-     "Electronique/Technique", "Autre industrie"]
-)
+# Formulaire de recherche
+with st.form("recherche_form"):
+    nom_entreprise = st.text_input("Nom de l'entreprise* ( preciser nom de l'entreprise et ville ou departement idealement")
+    secteur_cible = st.selectbox(
+        "Secteur d'activité*",
+        ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
+         "Electronique/Technique", "Autre"]
+    )
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        recherche_standard = st.form_submit_button("🔍 Recherche Standard")
+    with col2:
+        recherche_pro = st.form_submit_button("🚀 Recherche PRO")
 
-# --- Boutons d'action ---
-col1, col2, col3 = st.columns([1, 1, 2])
-with col1:
-    btn_standard = st.button("🔎 Recherche standard", type="primary")
-with col2:
-    btn_pro = st.button("🚀 Recherche PRO", type="secondary")
-with col3:
-    st.caption("*Champs obligatoires")
+# Configuration API
+def generate_prompt(entreprise, secteur):
+    return f"""Génère une fiche entreprise structurée pour :
+- Entreprise: {entreprise}
+- Secteur: {secteur}
 
-# --- Configuration API ---
-endpoint = "https://api.deepseek.com/v1/chat/completions"
-headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"
-}
+### Structure requise:
+1. **Résumé** (secteur + localisation)
+2. **Activité** (description courte)
+3. **Chiffres** (CA, effectifs, sites)
+4. **Actualité** (2-3 événements récents)
+5. **Contacts** (noms vérifiés uniquement)
 
-# --- Prompt expert REVISÉ et TESTÉ ---
-PROMPT_TEMPLATE = """Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-précise pour :
-- Entreprise : {entreprise}
-- Secteur : {secteur}
+Format Markdown strict."""
 
-### Exigences strictes :
-1. Structure Markdown EXACTE comme dans le template
-2. Sources vérifiables pour tous les chiffres
-3. Contacts réels uniquement (sinon "Non trouvé")
+# Traitement de la recherche
+if recherche_standard or recherche_pro:
+    with st.spinner("Analyse en cours..."):
+        payload = {
+            "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "Expert en analyse B2B"},
+                {"role": "user", "content": generate_prompt(nom_entreprise, secteur_cible)}
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "web_search": recherche_pro
+        }
 
-### Template OBLIGATOIRE :
-```markdown
-### 1. Résumé synthétique
-[🏢 Secteur] | [📍 Localisation] 
-[1 phrase combinant secteur et localisation]
-
-### 2. Description activité
-[2-3 phrases maximum]
-- Activité principale : [détail]
-- Spécialités : [liste à puces]
-- Positionnement : [1 phrase]
-
-### 3. Chiffres clés
-📊 CA : [valeur] | 📈 Tendance
-👥 Effectifs : [nombre]
-🏭 Sites : [nombre]
-ℹ️ Source : [lien]
-
-### 4. Signaux récents
-📰 Derniers 6 mois
-- [Événement 1 avec date]
-- [Événement 2 avec date]
-- Analyse : [1 phrase]
-
-### 5. Contacts
-🔍 Recherche vérifiée
-- Production : [Nom] | [Contact] | [Tel]
-- Qualité : [Nom] | [Contact] | [Tel]
-- Technique : [Nom] | [Contact] | [Tel]
-```"""
-
-# Formatage séparé pour éviter les problèmes de f-string
-PROMPT_EXPERT = PROMPT_TEMPLATE.format(entreprise=nom_entreprise, secteur=secteur_cible)
-
-if btn_standard or btn_pro:
-    # --- Configuration de la requête ---
-    payload = {
-        "model": "deepseek-reasoner" if btn_pro else "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "Tu es un assistant expert en intelligence économique B2B. Réponses factuelles et structurées."
-            },
-            {"role": "user", "content": PROMPT_EXPERT}
-        ],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "web_search": btn_pro
-    }
-
-    # --- Execution ---
-    with st.status("🔍 Analyse en cours...", expanded=True) as status:
         try:
-            progress_bar = st.progress(0)
-            for i in range(100):
-                time.sleep(0.03 if btn_pro else 0.01)
-                progress_bar.progress(i + 1)
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+                json=payload,
+                timeout=120 if recherche_pro else 60
+            )
 
-            timeout = 120 if btn_pro else 60
-            response = requests.post(endpoint, headers=headers, json=payload, timeout=timeout)
-            
             if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
                 
-                st.success(f"✅ Analyse terminée (Tokens: {result['usage']['total_tokens']})")
-                if btn_pro:
-                    st.info("🌐 Recherche web activée | Mode Reasoner R1")
+                # Affichage du résultat dans un conteneur adaptatif
+                st.markdown("---")
+                st.success("✅ Analyse terminée")
                 
-                st.divider()
-                st.markdown(content)
+                with st.container():
+                    st.markdown(
+                        f'<div class="report-container">{content}</div>',
+                        unsafe_allow_html=True
+                    )
                 
+                if recherche_pro:
+                    st.info("🌐 Recherche web activée | Mode approfondi")
             else:
-                st.error(f"Erreur API {response.status_code}")
-                st.code(response.text, language="json")
+                st.error(f"Erreur API: {response.status_code}")
 
         except Exception as e:
-            st.error(f"Erreur : {str(e)}")
-        finally:
-            status.update(label="Analyse complète", state="complete")
+            st.error(f"Erreur: {str(e)}")
 
-# --- Sidebar ---
+# Sidebar
 with st.sidebar:
-    st.header("Journal")
-    st.code(f"Dernière requête:\n{time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"Entreprise: {nom_entreprise}\n"
-            f"Mode: {'PRO' if btn_pro else 'Standard'}")
+    st.info("""
+    **Instructions:**
+    1. Renseignez le nom de l'entreprise
+    2. Sélectionnez le secteur
+    3. Lancez la recherche
+    """)
+    if st.button("🔄 Réinitialiser"):
+        st.rerun()
