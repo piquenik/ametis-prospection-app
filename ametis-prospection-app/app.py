@@ -104,7 +104,7 @@ if 'last_request' not in st.session_state:
         'last_report': None
     }
 
-# Fonction de création du PDF
+# Fonction de création du PDF avec gestion des caractères spéciaux
 def create_pdf(entreprise, secteur, contenu):
     pdf = FPDF()
     pdf.add_page()
@@ -117,27 +117,32 @@ def create_pdf(entreprise, secteur, contenu):
     pdf.cell(200, 10, txt=f"Secteur: {secteur}", ln=1, align='C')
     pdf.ln(10)
     
+    # Nettoyage des caractères spéciaux
+    def clean_text(text):
+        return text.encode('latin-1', 'replace').decode('latin-1')
+    
     # Contenu formaté
     pdf.set_font("Arial", size=10)
     lines = contenu.split('\n')
     for line in lines:
-        if line.startswith('### '):
+        clean_line = clean_text(line)
+        if clean_line.startswith('### '):
             pdf.set_font('Arial', 'B', 12)
-            pdf.cell(200, 8, txt=line[4:].strip(), ln=1)
+            pdf.cell(200, 8, txt=clean_line[4:].strip(), ln=1)
             pdf.set_font('Arial', '', 10)
-        elif line.startswith('- '):
+        elif clean_line.startswith('- '):
             pdf.cell(10)
-            pdf.cell(200, 8, txt='• ' + line[2:].strip(), ln=1)
+            pdf.cell(200, 8, txt='- ' + clean_line[2:].strip(), ln=1)  # Remplace les puces par des tirets
         else:
-            pdf.multi_cell(0, 8, txt=line.strip())
+            pdf.multi_cell(0, 8, txt=clean_line.strip())
         pdf.ln(2)
     
     # Pied de page
     pdf.set_y(-15)
     pdf.set_font('Arial', 'I', 8)
-    pdf.cell(0, 10, f"Généré le {datetime.now(timezone(timedelta(hours=2))).strftime('%d/%m/%Y %H:%M')} par Assistant Prospection Ametis", 0, 0, 'C')
+    pdf.cell(0, 10, clean_text(f"Généré le {datetime.now(timezone(timedelta(hours=2))).strftime('%d/%m/%Y %H:%M')} par Assistant Prospection Ametis"), 0, 0, 'C')
     
-    return pdf.output(dest='S').encode('latin1')
+    return pdf.output(dest='S').encode('latin-1')
 
 # Traitement de la recherche
 if recherche_standard or recherche_pro:
