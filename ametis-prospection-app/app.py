@@ -78,7 +78,7 @@ def generate_pdf_report(data):
         pdf.set_font("Arial", size=12)
         
         pdf.cell(200, 10, txt="Rapport de Prospection Ametis", ln=1, align='C')
-        pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
+        pdf.cell(200, 10, txt=f"Date: {datetime.now(french_tz).strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
         
         clean_text = data.get('analyse', '').replace('€', 'EUR').replace('\u20ac', 'EUR')
         pdf.multi_cell(0, 10, txt=clean_text)
@@ -89,7 +89,7 @@ def generate_pdf_report(data):
         st.error("Erreur lors de la génération du PDF")
         return None
 
-def call_deepseek_api(prompt: str, pro_mode: bool = False) -> str:
+def call_deepseek_api(prompt: str, deepseek-reasoner: bool = False) -> str:
     """Appel robuste à l'API DeepSeek avec gestion des erreurs"""
     headers = {
         "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
