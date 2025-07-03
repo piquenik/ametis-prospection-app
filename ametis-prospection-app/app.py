@@ -4,7 +4,6 @@ import os
 import time
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
-import base64
 
 # Configuration de la page
 st.set_page_config(
@@ -104,7 +103,8 @@ if 'last_request' not in st.session_state:
         'entreprise': None,
         'mode': None,
         'tokens': None,
-        'last_report': None
+        'last_report': None,
+        'pdf_bytes': None
     }
 
 # Fonction de création du PDF
@@ -174,6 +174,9 @@ if recherche_standard or recherche_pro:
                 content = result["choices"][0]["message"]["content"]
                 tokens_used = result["usage"]["total_tokens"]
                 
+                # Génération du PDF
+                pdf_bytes = create_pdf(nom_entreprise, secteur_cible, content)
+                
                 # Mise à jour du journal
                 french_tz = timezone(timedelta(hours=2))
                 st.session_state.last_request = {
@@ -181,7 +184,8 @@ if recherche_standard or recherche_pro:
                     'entreprise': nom_entreprise,
                     'mode': "PRO" if recherche_pro else "Standard",
                     'tokens': tokens_used,
-                    'last_report': content
+                    'last_report': content,
+                    'pdf_bytes': pdf_bytes
                 }
                 
                 # Affichage du résultat
@@ -194,43 +198,6 @@ if recherche_standard or recherche_pro:
                         unsafe_allow_html=True
                     )
                 
-                # Export PDF amélioré
-                if st.session_state.last_request['last_report']:
-                    pdf_bytes = create_pdf(
-                        nom_entreprise, 
-                        secteur_cible, 
-                        st.session_state.last_request['last_report']
-                    )
-                    
-                    # Création du lien de téléchargement masqué
-                    b64 = base64.b64encode(pdf_bytes).decode()
-                    href = f'<a href="data:application/pdf;base64,{b64}" download="fiche_prospection_{nom_entreprise}.pdf" id="auto-download" style="visibility: hidden;"></a>'
-                    st.markdown(href, unsafe_allow_html=True)
-                    
-                    # Bouton qui déclenche le téléchargement via JS
-                    st.button(
-                        "📄 Exporter en PDF",
-                        key="export_btn",
-                        help="Téléchargez la fiche complète au format PDF",
-                        use_container_width=True
-                    )
-                    
-                    # Script JS pour déclencher le téléchargement automatique
-                    st.markdown("""
-                    <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const downloadLink = document.getElementById('auto-download');
-                        const exportBtn = document.querySelector('button[data-testid="baseButton-secondary"]');
-                        
-                        if (exportBtn && downloadLink) {
-                            exportBtn.addEventListener('click', function() {
-                                downloadLink.click();
-                            });
-                        }
-                    });
-                    </script>
-                    """, unsafe_allow_html=True)
-                
                 if recherche_pro:
                     st.info("🌐 Recherche web activée | Mode approfondi")
             else:
@@ -238,6 +205,18 @@ if recherche_standard or recherche_pro:
 
         except Exception as e:
             st.error(f"Erreur: {str(e)}")
+
+# Bouton d'export PDF (toujours visible si un rapport existe)
+if st.session_state.last_request['last_report']:
+    st.download_button(
+        label="📄 Exporter en PDF",
+        data=st.session_state.last_request['pdf_bytes'],
+        file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
+        mime="application/pdf",
+        key="download_pdf",
+        help="Télécharger la fiche au format PDF",
+        use_container_width=True
+    )
 
 # Sidebar
 with st.sidebar:
