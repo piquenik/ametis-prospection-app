@@ -10,7 +10,7 @@ from fpdf import FPDF
 # Configuration de la page
 st.set_page_config(
     page_title="Assistant Prospection Ametis VBeta V1,1DS",
-    layout="wide",  # Changé pour permettre plus d'espace
+    layout="centered",
     page_icon="🤖",
     menu_items={
         'Get Help': None,
@@ -102,34 +102,6 @@ st.markdown("""
         margin-top: 1rem;
     }
 
-    /* Styles pour les boutons de fonctionnalités */
-    .feature-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .feature-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    }
-
-    .feature-section {
-        background: #ffffff;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-    }
-
     @media (max-width: 640px) {
         .main-container {padding: 1rem;}
         .report-container {padding: 1rem;}
@@ -137,66 +109,34 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Layout principal avec colonnes
-col_main, col_features = st.columns([2, 1])
+# Header
+st.title(" 🔍 ASSISTANT Prospection Ametis")
+st.markdown(f"-VBeta 1,1DeepSeek | Connecté en tant que: **{st.session_state.current_user}** ({st.session_state.role})")
 
-with col_main:
-    # Header
-    st.title(" 🔍 ASSISTANT Prospection Ametis")
-    st.markdown(f"-VBeta 1,1DeepSeek | Connecté en tant que: **{st.session_state.current_user}** ({st.session_state.role})")
+# Paramètres
+with st.expander("⚙️ Paramètres avancés", expanded=False):
+    col1, col2 = st.columns(2)
+    with col1:
+        temperature = st.slider("Niveau de précision", 0.1, 1.0, 0.6)
+    with col2:
+        max_tokens = st.slider("Longueur de réponse", 500, 2000, 1200)
 
-    # Paramètres
-    with st.expander("⚙️ Paramètres avancés", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            temperature = st.slider("Niveau de précision", 0.1, 1.0, 0.6)
-        with col2:
-            max_tokens = st.slider("Longueur de réponse", 500, 2000, 1200)
+# Formulaire de recherche
+with st.form("recherche_form"):
+    nom_entreprise = st.text_input("Nom de l'entreprise (Nom + Dep + Ville ex: Actibio 53 changé)*")
+    secteur_cible = st.selectbox(
+        "Secteur d'activité*",
+        ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
+         "Electronique/Technique", "Autre"]
+    )
 
-    # Formulaire de recherche
-    with st.form("recherche_form"):
-        nom_entreprise = st.text_input("Nom de l'entreprise (Nom + Dep + Ville ex: Actibio 53 changé)*")
-        secteur_cible = st.selectbox(
-            "Secteur d'activité*",
-            ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
-             "Electronique/Technique", "Autre"]
-        )
+    col1, col2 = st.columns(2)
+    with col1:
+        recherche_standard = st.form_submit_button("🔍 Recherche Standard")
+    with col2:
+        recherche_pro = st.form_submit_button("🚀 Recherche PRO")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            recherche_standard = st.form_submit_button("🔍 Recherche Standard")
-        with col2:
-            recherche_pro = st.form_submit_button("🚀 Recherche PRO")
-
-# Fonctions pour les requêtes API
-def make_api_request(payload, timeout=60):
-    try:
-        response = requests.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
-                "Content-Type": "application/json"
-            },
-            json=payload,
-            timeout=timeout
-        )
-        
-        # Debug: afficher le code de statut
-        if response.status_code != 200:
-            st.error(f"Erreur API - Code: {response.status_code}")
-            st.error(f"Réponse: {response.text}")
-            
-        return response
-    except requests.exceptions.Timeout:
-        st.error("Timeout - La requête a pris trop de temps")
-        return None
-    except requests.exceptions.ConnectionError:
-        st.error("Erreur de connexion à l'API DeepSeek")
-        return None
-    except Exception as e:
-        st.error(f"Erreur lors de la requête API: {e}")
-        return None
-
+# Configuration API
 def generate_prompt(entreprise, secteur):
     return f"""Génère une fiche entreprise structurée pour :
 - Entreprise: {entreprise}
@@ -210,57 +150,6 @@ def generate_prompt(entreprise, secteur):
 5. **Contacts** (noms vérifiés uniquement)
 
 Format Markdown strict."""
-
-def generate_competitors_prompt(entreprise, secteur):
-    return f"""Identifie et liste 10 entreprises concurrentes ou similaires à {entreprise} dans le secteur {secteur}.
-
-Pour chaque entreprise, fournis :
-- Nom complet
-- Ville/Région
-- Secteur précis
-- Taille approximative (CA ou effectifs)
-- Particularité/spécialité
-
-Localisation prioritaire : dans un rayon de 50km autour de {entreprise}."""
-
-def generate_prospects_prompt(entreprise, secteur):
-    return f"""Suggère 10 entreprises prospects potentiels pour {entreprise} (secteur: {secteur}).
-
-Critères de sélection :
-- Entreprises qui pourraient avoir besoin des services/produits de {entreprise}
-- Localisation : rayon de 50km autour de {entreprise}
-- Secteurs complémentaires ou clients potentiels
-- Taille compatible pour partenariat
-
-Pour chaque prospect :
-- Nom et localisation
-- Secteur d'activité
-- Pourquoi c'est un prospect intéressant
-- Contact suggéré (fonction)"""
-
-def generate_market_analysis_prompt(entreprise, secteur):
-    return f"""Analyse le marché local pour {entreprise} dans le secteur {secteur}.
-
-Analyse :
-1. **Tendances du marché** (croissance, défis, opportunités)
-2. **Concurrence locale** (3-5 acteurs principaux)
-3. **Opportunités de développement**
-4. **Risques et menaces**
-5. **Recommandations stratégiques**
-
-Focus géographique : région de {entreprise}."""
-
-def generate_contacts_prompt(entreprise, secteur):
-    return f"""Recherche des contacts clés pour {entreprise} dans le secteur {secteur}.
-
-Types de contacts recherchés :
-1. **Direction** (PDG, DG, Directeurs)
-2. **Commercial** (Directeur commercial, responsables ventes)
-3. **Technique** (CTO, Directeur technique, ingénieurs)
-4. **Partenaires** (distributeurs, fournisseurs locaux)
-5. **Institutionnels** (organismes professionnels, clusters)
-
-Pour chaque contact : nom, fonction, coordonnées si disponibles."""
 
 # Journal d'activité
 if 'last_request' not in st.session_state:
@@ -277,14 +166,14 @@ if 'history' not in st.session_state:
     st.session_state.history = []
 
 # Fonction de création du PDF
-def create_pdf(entreprise, secteur, contenu, type_analyse="Standard"):
+def create_pdf(entreprise, secteur, contenu):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
     # En-tête
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"Analyse {type_analyse}: {entreprise}", ln=1, align='C')
+    pdf.cell(200, 10, txt=f"Fiche Prospection: {entreprise}", ln=1, align='C')
     pdf.set_font("Arial", 'I', 12)
     pdf.cell(200, 10, txt=f"Secteur: {secteur}", ln=1, align='C')
     pdf.ln(10)
@@ -313,304 +202,46 @@ def create_pdf(entreprise, secteur, contenu, type_analyse="Standard"):
 
     return pdf.output(dest='S').encode('latin-1')
 
-# Fonction pour exécuter une analyse supplémentaire
-def execute_additional_analysis(prompt, analysis_type, use_pro_model=True):
-    if not st.session_state.last_request['last_report']:
-        st.error("Aucune recherche précédente trouvée. Effectuez d'abord une recherche standard.")
-        return
-    
-    # Utilisation d'un container dans la colonne principale pour afficher les résultats
-    with col_main:
-        loading_placeholder = st.empty()
-        loading_placeholder.markdown(f"""
-        <div class="loading-container">
-            <div class="loading-logo">🔍</div>
-            <h3 class="loading-text">Analyse {analysis_type}</h3>
-            <p>Traitement en cours...</p>
+# Traitement de la recherche avec animation
+if recherche_standard or recherche_pro:
+    loading_placeholder = st.empty()
+    loading_placeholder.markdown("""
+    <div class="loading-container">
+        <div class="loading-logo">🔍</div>
+        <h3 class="loading-text">Ametis Prospect+</h3>
+        <p>Notre équipe analyse les données...</p>
+        <div style="font-size: 1.5rem;">
+            <span style="animation: pulse 2s infinite;">🤖</span>
+            <span style="animation: pulse 2s infinite 0.5s;">📊</span>
+            <span style="animation: pulse 2s infinite 1s;">💼</span>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
+    with st.spinner("Analyse en cours..."):
         payload = {
-            "model": "deepseek-reasoner" if use_pro_model else "deepseek-chat",
+            "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "Expert en analyse B2B et prospection commerciale"},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "Expert en analyse B2B"},
+                {"role": "user", "content": generate_prompt(nom_entreprise, secteur_cible)}
             ],
-            "temperature": 0.7,  # Valeur par défaut si temperature n'est pas définie
-            "max_tokens": 1500,  # Valeur par défaut si max_tokens n'est pas définie
-            "web_search": True
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "web_search": recherche_pro
         }
 
         try:
-            response = make_api_request(payload, timeout=120)
-            loading_placeholder.empty()
-            
-            if response and response.status_code == 200:
-                result = response.json()
-                content = result["choices"][0]["message"]["content"]
-                tokens_used = result["usage"]["total_tokens"]
-                
-                # Affichage du résultat dans la colonne principale
-                st.markdown("---")
-                st.success(f"✅ Analyse {analysis_type} terminée")
-                
-                with st.container():
-                    st.markdown(
-                        f'<div class="report-container">{content}</div>',
-                        unsafe_allow_html=True
-                    )
-                
-                # Génération du PDF pour l'analyse supplémentaire
-                try:
-                    pdf_bytes = create_pdf(
-                        st.session_state.last_request['entreprise'], 
-                        "Analyse", 
-                        content, 
-                        analysis_type
-                    )
-                    
-                    st.download_button(
-                        label=f"📄 Exporter {analysis_type} en PDF",
-                        data=pdf_bytes,
-                        file_name=f"{analysis_type}_{st.session_state.last_request['entreprise']}.pdf",
-                        mime="application/pdf",
-                        key=f"pdf_{analysis_type}_{int(time.time())}",
-                        use_container_width=True
-                    )
-                except Exception as pdf_error:
-                    st.warning(f"Erreur génération PDF: {pdf_error}")
-                
-                return content
-            else:
-                error_msg = f"Erreur API: {response.status_code}"
-                if response:
-                    try:
-                        error_detail = response.json()
-                        error_msg += f" - {error_detail.get('error', {}).get('message', 'Erreur inconnue')}"
-                    except:
-                        error_msg += f" - {response.text}"
-                st.error(error_msg)
-                
-        except Exception as e:
-            loading_placeholder.empty()
-            st.error(f"Erreur lors de l'analyse {analysis_type}: {str(e)}")
-            st.error(f"Détails: {type(e).__name__}")
-            
-            # Debug info
-            st.write("Debug - Payload envoyé:")
-            st.json(payload)
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+                json=payload,
+                timeout=120 if recherche_pro else 60
+            )
 
-# Traitement de la recherche avec animation
-with col_main:
-    if recherche_standard or recherche_pro:
-        loading_placeholder = st.empty()
-        
-        # Animation de chargement inspirée du loading HTML
-        loading_placeholder.markdown("""
-        <div style="
-            margin: 0;
-            padding: 0;
-            min-height: 400px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Arial', sans-serif;
-            border-radius: 20px;
-            margin-bottom: 20px;
-        ">
-            <div style="
-                text-align: center;
-                padding: 40px;
-                background: rgba(255, 255, 255, 0.1);
-                backdrop-filter: blur(10px);
-                border-radius: 20px;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                min-width: 400px;
-            ">
-                <div style="
-                    color: white;
-                    font-size: 28px;
-                    font-weight: bold;
-                    margin-bottom: 30px;
-                    opacity: 0;
-                    animation: fadeInUp 1s ease-out 0.5s forwards;
-                ">Assistant Ametis</div>
-                
-                <div style="
-                    position: relative;
-                    width: 100%;
-                    height: 80px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 40px;
-                    overflow: hidden;
-                    margin: 20px 0;
-                    border: 2px solid rgba(255, 255, 255, 0.2);
-                ">
-                    <div id="progress-bar" style="
-                        height: 100%;
-                        background: linear-gradient(90deg, #00c851, #007e33);
-                        border-radius: 40px;
-                        width: 0%;
-                        transition: width 0.3s ease;
-                        position: relative;
-                        box-shadow: 0 0 20px rgba(0, 200, 81, 0.3);
-                    ">
-                        <div style="
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-                            animation: shine 2s infinite;
-                        "></div>
-                    </div>
-                    
-                    <div id="logo-container" style="
-                        position: absolute;
-                        top: 50%;
-                        right: 20px;
-                        transform: translateY(-50%);
-                        width: 50px;
-                        height: 50px;
-                        background: white;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        opacity: 0;
-                        transition: opacity 0.5s ease;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                    ">
-                        <div style="
-                            color: #667eea;
-                            font-size: 24px;
-                            font-weight: bold;
-                        ">🔍</div>
-                    </div>
-                </div>
-                
-                <div id="percentage" style="
-                    color: white;
-                    font-size: 24px;
-                    font-weight: bold;
-                    margin-top: 20px;
-                    opacity: 0;
-                    animation: fadeInUp 1s ease-out 1s forwards;
-                ">0%</div>
-                
-                <div id="status-text" style="
-                    color: rgba(255, 255, 255, 0.8);
-                    font-size: 16px;
-                    margin-top: 10px;
-                    opacity: 0;
-                    animation: fadeInUp 1s ease-out 1.5s forwards;
-                ">Initialisation...</div>
-                
-                <div id="completion-message" style="
-                    color: #00c851;
-                    font-size: 18px;
-                    font-weight: bold;
-                    margin-top: 20px;
-                    opacity: 0;
-                    transition: opacity 0.5s ease;
-                ">Analyse terminée !</div>
-            </div>
-        </div>
-        
-        <style>
-            @keyframes shine {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(100%); }
-            }
-            
-            @keyframes fadeInUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-        </style>
-        
-        <script>
-            // Simulation de la progression
-            let currentProgress = 0;
-            let logoLoaded = false;
-            
-            const statusMessages = [
-                "Initialisation...",
-                "Connexion à DeepSeek...",
-                "Analyse de l'entreprise...",
-                "Récupération des données...",
-                "Génération du rapport...",
-                "Finalisation...",
-                "Terminé !"
-            ];
-            
-            function updateProgress() {
-                const progressBar = document.getElementById('progress-bar');
-                const logoContainer = document.getElementById('logo-container');
-                const percentage = document.getElementById('percentage');
-                const statusText = document.getElementById('status-text');
-                const completionMessage = document.getElementById('completion-message');
-                
-                if (currentProgress < 100) {
-                    const increment = Math.random() * 15 + 5;
-                    currentProgress = Math.min(currentProgress + increment, 100);
-                    
-                    if (progressBar) progressBar.style.width = currentProgress + '%';
-                    if (percentage) percentage.textContent = Math.round(currentProgress) + '%';
-                    
-                    const statusIndex = Math.floor((currentProgress / 100) * (statusMessages.length - 1));
-                    if (statusText) statusText.textContent = statusMessages[statusIndex];
-                    
-                    if (currentProgress >= 40 && !logoLoaded && logoContainer) {
-                        logoContainer.style.opacity = '1';
-                        logoLoaded = true;
-                    }
-                    
-                    if (currentProgress < 100) {
-                        setTimeout(updateProgress, Math.random() * 500 + 200);
-                    } else {
-                        if (statusText) statusText.textContent = statusMessages[statusMessages.length - 1];
-                        setTimeout(() => {
-                            if (completionMessage) completionMessage.style.opacity = '1';
-                        }, 500);
-                    }
-                }
-            }
-            
-            // Démarrer l'animation après 1 seconde
-            setTimeout(updateProgress, 1000);
-        </script>
-        """, unsafe_allow_html=True)
-
-        with st.spinner("Analyse en cours..."):
-            payload = {
-                "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
-                "messages": [
-                    {"role": "system", "content": "Expert en analyse B2B"},
-                    {"role": "user", "content": generate_prompt(nom_entreprise, secteur_cible)}
-                ],
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "web_search": recherche_pro
-            }
-
-            response = make_api_request(payload, timeout=120 if recherche_pro else 60)
-            
-            # Petit délai pour laisser l'animation se terminer
-            time.sleep(2)
+            # Effacer l'animation
             loading_placeholder.empty()
 
-            if response and response.status_code == 200:
+            if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
                 tokens_used = result["usage"]["total_tokens"]
@@ -674,148 +305,80 @@ with col_main:
                 if recherche_pro:
                     st.info("🌐 Recherche web activée | Mode approfondi")
             else:
-                st.error(f"Erreur API: {response.status_code if response else 'Pas de réponse'}")
+                st.error(f"Erreur API: {response.status_code}")
 
-    # Bouton d'export PDF
-    if st.session_state.last_request['last_report']:
-        st.download_button(
-            label="📄 Exporter en PDF",
-            data=st.session_state.last_request['pdf_bytes'],
-            file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
-            mime="application/pdf",
-            key=f"pdf_{st.session_state.last_request['entreprise']}_{st.session_state.last_request['date']}",
-            help="Télécharger la fiche au format PDF",
-            use_container_width=True
-        )
+        except Exception as e:
+            loading_placeholder.empty()
+            st.error(f"Erreur: {str(e)}")
 
-        # Champ de question de suivi
-        st.markdown("---")
-        st.subheader("🔁 Question de suivi (mode Raisonnement avec sources)")
-        question_suivi = st.text_input("Posez une question de suivi sur cette entreprise :")
+# Bouton d'export PDF
+if st.session_state.last_request['last_report']:
+    st.download_button(
+        label="📄 Exporter en PDF",
+        data=st.session_state.last_request['pdf_bytes'],
+        file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
+        mime="application/pdf",
+        key=f"pdf_{st.session_state.last_request['entreprise']}_{st.session_state.last_request['date']}",
+        help="Télécharger la fiche au format PDF",
+        use_container_width=True
+    )
 
-        if question_suivi:
-            with st.spinner("Analyse complémentaire en cours..."):
-                suivi_payload = {
-                    "model": "deepseek-reasoner",
-                    "messages": [
-                        {"role": "system", "content": "Expert en analyse B2B"},
-                        {"role": "user", "content": st.session_state.last_request['last_report']},
-                        {"role": "user", "content": question_suivi}
-                    ],
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "web_search": True
-                }
+    # Champ de question de suivi
+    st.markdown("---")
+    st.subheader("🔁 Question de suivi (mode Raisonnement avec sources)")
+    question_suivi = st.text_input("Posez une question de suivi sur cette entreprise :")
 
-                suivi_response = make_api_request(suivi_payload, timeout=120)
-                if suivi_response and suivi_response.status_code == 200:
+    if question_suivi:
+        with st.spinner("Analyse complémentaire en cours..."):
+            suivi_payload = {
+                "model": "deepseek-reasoner",
+                "messages": [
+                    {"role": "system", "content": "Expert en analyse B2B"},
+                    {"role": "user", "content": st.session_state.last_request['last_report']},
+                    {"role": "user", "content": question_suivi}
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "web_search": True
+            }
+
+            try:
+                suivi_response = requests.post(
+                    "https://api.deepseek.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+                    json=suivi_payload,
+                    timeout=120
+                )
+                if suivi_response.status_code == 200:
                     suivi_content = suivi_response.json()["choices"][0]["message"]["content"]
                     st.markdown("---")
                     st.subheader("🧠 Réponse à la question de suivi")
                     st.markdown(f'<div class="report-container">{suivi_content}</div>', unsafe_allow_html=True)
                 else:
-                    st.error(f"Erreur API Deepseek: {suivi_response.status_code if suivi_response else 'Pas de réponse'}")
+                    st.error(f"Erreur API Deepseek: {suivi_response.status_code}")
+            except Exception as err:
+                st.error(f"Erreur lors de la question de suivi: {err}")
 
-        # Bouton Nouvelle recherche
-        if st.button("🔁 Nouvelle recherche"):
-            st.session_state.last_request = {
-                'date': None,
-                'entreprise': None,
-                'mode': None,
-                'tokens': None,
-                'last_report': None,
-                'pdf_bytes': None
-            }
-            st.rerun()
+    # Bouton Nouvelle recherche
+    if st.button("🔁 Nouvelle recherche"):
+        st.session_state.last_request = {
+            'date': None,
+            'entreprise': None,
+            'mode': None,
+            'tokens': None,
+            'last_report': None,
+            'pdf_bytes': None
+        }
+        st.rerun()
 
-# Colonne des fonctionnalités supplémentaires
-with col_features:
-    st.markdown("### 🚀 Fonctionnalités Avancées")
-    
-    # Vérifier si une recherche a été effectuée
-    if st.session_state.last_request['last_report']:
-        entreprise_actuelle = st.session_state.last_request['entreprise']
-        st.markdown(f"**Entreprise analysée:** {entreprise_actuelle}")
-        
-        # Section Analyse Concurrentielle
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🎯 Analyse Concurrentielle</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🏢 Identifier les Concurrents (50km)", key="competitors", use_container_width=True):
-            prompt = generate_competitors_prompt(entreprise_actuelle, "Analyse concurrentielle")
-            execute_additional_analysis(prompt, "Concurrents", use_pro_model=False)
-        
-        # Section Prospection
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🎯 Prospection Ciblée</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🎯 Suggérer des Prospects (50km)", key="prospects", use_container_width=True):
-            prompt = generate_prospects_prompt(entreprise_actuelle, "Prospection")
-            execute_additional_analysis(prompt, "Prospects", use_pro_model=False)
-        
-        # Section Analyse Marché
-        st.markdown("""
-        <div class="feature-section">
-            <h4>📊 Analyse de Marché</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("📈 Analyser le Marché Local", key="market", use_container_width=True):
-            prompt = generate_market_analysis_prompt(entreprise_actuelle, "Marché")
-            execute_additional_analysis(prompt, "Marché", use_pro_model=False)
-        
-        # Section Contacts
-        st.markdown("""
-        <div class="feature-section">
-            <h4>📞 Réseau de Contacts</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("👥 Rechercher des Contacts Clés", key="contacts", use_container_width=True):
-            prompt = generate_contacts_prompt(entreprise_actuelle, "Contacts")
-            execute_additional_analysis(prompt, "Contacts", use_pro_model=False)
-        
-        # Section Analyse Personnalisée
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🔧 Analyse Personnalisée</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        custom_prompt = st.text_area("Votre demande personnalisée:", key="custom_analysis", height=100)
-        if st.button("🚀 Analyser", key="custom", use_container_width=True) and custom_prompt:
-            full_prompt = f"""Analyse personnalisée pour {entreprise_actuelle}:
-
-{custom_prompt}
-
-Basé sur les informations disponibles sur cette entreprise, fournis une analyse détaillée et actionnable."""
-            execute_additional_analysis(full_prompt, "Personnalisée", use_pro_model=False)
-    
-    else:
-        st.info("🔍 Effectuez d'abord une recherche pour débloquer les fonctionnalités avancées")
-        st.markdown("""
-        **Fonctionnalités disponibles après recherche:**
-        - 🏢 Analyse concurrentielle
-        - 🎯 Suggestion de prospects
-        - 📈 Analyse du marché local
-        - 👥 Recherche de contacts
-        - 🔧 Analyse personnalisée
-        """)
-
-# Sidebar historique (déplacée en bas)
+# Sidebar
 with st.sidebar:
     st.info("""
     **Instructions:**
     1. Renseignez le nom de l'entreprise
     2. Sélectionnez le secteur
     3. Lancez la recherche
-    4. Utilisez les fonctionnalités avancées →
+    4. Posez des questions Supplementaires
     """)
 
     st.markdown("---")
@@ -842,7 +405,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# Zone admin (en bas)
+# Zone admin
 if st.session_state.role == "admin":
     st.markdown("---")
     st.subheader("🔒 Journal des Recherches (admin)")
@@ -859,6 +422,7 @@ if st.session_state.role == "admin":
                     for r in log_data
                 )
 
+                # Téléchargement sans rechargement de page
                 st.download_button(
                     label="📃 Télécharger CSV",
                     data=csv_data,
