@@ -373,7 +373,7 @@ if st.session_state.last_request['last_report']:
                 st.error(f"Erreur traitement: {e}")
 ...
 
-    if question_suivi:
+        if question_suivi:
         with st.spinner("Analyse complémentaire en cours..."):
             suivi_payload = {
                 "model": "deepseek-reasoner",
