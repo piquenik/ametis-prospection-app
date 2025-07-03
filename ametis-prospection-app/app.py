@@ -378,6 +378,7 @@ with st.sidebar:
     1. Renseignez le nom de l'entreprise
     2. Sélectionnez le secteur
     3. Lancez la recherche
+    4. Posez des questions Supplementaires
     """)
 
     st.markdown("---")
