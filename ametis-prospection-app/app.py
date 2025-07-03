@@ -121,15 +121,6 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(0,0,0,0.15);
     }
 
-    .feature-section {
-        background: #ffffff;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-    }
-
     @media (max-width: 640px) {
         .main-container {padding: 1rem;}
         .report-container {padding: 1rem;}
@@ -550,7 +541,7 @@ with col_main:
             }
             st.rerun()
 
-# Colonne des fonctionnalités supplémentaires
+# Colonne des fonctionnalités supplémentaires (VERSION SIMPLIFIÉE)
 with col_features:
     st.markdown("### 🚀 Fonctionnalités Avancées")
     
@@ -559,56 +550,26 @@ with col_features:
         entreprise_actuelle = st.session_state.last_request['entreprise']
         st.markdown(f"**Entreprise analysée:** {entreprise_actuelle}")
         
-        # Section Analyse Concurrentielle
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🎯 Analyse Concurrentielle</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
+        # Boutons directs sans les bulles
         if st.button("🏢 Identifier les Concurrents (50km)", key="competitors", use_container_width=True):
             prompt = generate_competitors_prompt(entreprise_actuelle, "Analyse concurrentielle")
             execute_additional_analysis(prompt, "Concurrents", use_pro_model=False)
-        
-        # Section Prospection
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🎯 Prospection Ciblée</h4>
-        </div>
-        """, unsafe_allow_html=True)
         
         if st.button("🎯 Suggérer des Prospects (50km)", key="prospects", use_container_width=True):
             prompt = generate_prospects_prompt(entreprise_actuelle, "Prospection")
             execute_additional_analysis(prompt, "Prospects", use_pro_model=False)
         
-        # Section Analyse Marché
-        st.markdown("""
-        <div class="feature-section">
-            <h4>📊 Analyse de Marché</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
         if st.button("📈 Analyser le Marché Local", key="market", use_container_width=True):
             prompt = generate_market_analysis_prompt(entreprise_actuelle, "Marché")
             execute_additional_analysis(prompt, "Marché", use_pro_model=False)
-        
-        # Section Contacts
-        st.markdown("""
-        <div class="feature-section">
-            <h4>📞 Réseau de Contacts</h4>
-        </div>
-        """, unsafe_allow_html=True)
         
         if st.button("👥 Rechercher des Contacts Clés", key="contacts", use_container_width=True):
             prompt = generate_contacts_prompt(entreprise_actuelle, "Contacts")
             execute_additional_analysis(prompt, "Contacts", use_pro_model=False)
         
         # Section Analyse Personnalisée
-        st.markdown("""
-        <div class="feature-section">
-            <h4>🔧 Analyse Personnalisée</h4>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("**🔧 Analyse Personnalisée**")
         
         custom_prompt = st.text_area("Votre demande personnalisée:", key="custom_analysis", height=100)
         if st.button("🚀 Analyser", key="custom", use_container_width=True) and custom_prompt:
