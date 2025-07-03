@@ -62,19 +62,18 @@ def save_history(history):
         st.error(f"Erreur sauvegarde: {str(e)}")
 
 def generate_pdf_report(data):
-    """Génère un rapport PDF avec encodage UTF-8"""
+    """Génère un rapport PDF avec police standard"""
     try:
         pdf = FPDF()
         pdf.add_page()
         
-        # Configuration police UTF-8
-        pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
-        pdf.set_font('DejaVu', '', 12)
+        # Utilisation de la police standard Arial
+        pdf.set_font("Arial", size=12)
         
         pdf.cell(200, 10, txt="Rapport de Prospection Ametis", ln=1, align='C')
         pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
         
-        # Nettoyage du texte pour PDF
+        # Nettoyage du texte pour PDF (gestion des caractères spéciaux)
         clean_text = data.get('analyse', '').replace('€', 'EUR').replace('\u20ac', 'EUR')
         pdf.multi_cell(0, 10, txt=clean_text)
         
@@ -189,7 +188,7 @@ def display_results_container(content):
 
 def main_app_interface():
     """Interface principale"""
-    st.title("🤖 ASSISTANT Prospection Ametis")
+    st.title("😎 ASSISTANT Prospection Ametis")
     st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
     
     # Formulaire de recherche
