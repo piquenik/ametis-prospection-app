@@ -16,19 +16,38 @@ HISTORY_FILE = "search_history.json"
 MAX_HISTORY_ENTRIES = 100
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
+# Chargement des variables d'environnement
+load_dotenv('USER_CREDENTIALS.env')
+
+# Configuration des identifiants
+USER_CREDENTIALS = {
+    "admin": os.getenv("ADMIN", "admin"),
+    "NPI": os.getenv("NPI", "Ametis2025"),
+    "OB0": os.getenv("OB0", "Ametis2025"),
+    "NDS": os.getenv("NDS", "Ametis2025"),
+    "GBE": os.getenv("GBE", "Ametis2025"),
+    "SSZ": os.getenv("SSZ", "Ametis2025"),
+    "WVA": os.getenv("WVA", "Ametis2025"),
+    "PMO": os.getenv("PMO", "Ametis2025"),
+    "JNB": os.getenv("JNB", "Ametis2025"),
+    "LCA": os.getenv("LCA", "Ametis2025"),
+    "SNA": os.getenv("SNA", "Ametis2025"),
+    "YCB": os.getenv("YCB", "Ametis2025")
+}
+
 # ----------------------------
-# FONCTIONS CORE
+# FONCTIONS UTILITAIRES
 # ----------------------------
 
 def load_history():
     """Charge l'historique des recherches depuis le fichier JSON"""
     try:
         if not os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, 'w') as f:
-                json.dump([], f)
+            with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False)
             return []
         
-        with open(HISTORY_FILE, 'r') as f:
+        with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
         st.error(f"Erreur historique: {str(e)}")
@@ -37,20 +56,29 @@ def load_history():
 def save_history(history):
     """Sauvegarde l'historique des recherches"""
     try:
-        with open(HISTORY_FILE, 'w') as f:
-            json.dump(history[-MAX_HISTORY_ENTRIES:], f)
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history[-MAX_HISTORY_ENTRIES:], f, ensure_ascii=False)
     except Exception as e:
         st.error(f"Erreur sauvegarde: {str(e)}")
 
 def generate_pdf_report(data):
-    """Génère un rapport PDF"""
+    """Génère un rapport PDF avec encodage UTF-8"""
     try:
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Rapport de Prospection", ln=1, align='C')
-        pdf.multi_cell(0, 10, txt=data.get('analyse', ''))
-        return pdf.output(dest='S').encode('latin-1')
+        
+        # Configuration police UTF-8
+        pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+        pdf.set_font('DejaVu', '', 12)
+        
+        pdf.cell(200, 10, txt="Rapport de Prospection Ametis", ln=1, align='C')
+        pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
+        
+        # Nettoyage du texte pour PDF
+        clean_text = data.get('analyse', '').replace('€', 'EUR').replace('\u20ac', 'EUR')
+        pdf.multi_cell(0, 10, txt=clean_text)
+        
+        return pdf.output(dest='S').encode('latin-1', 'replace')
     except Exception as e:
         st.error(f"Erreur PDF: {str(e)}")
         return None
@@ -74,7 +102,7 @@ def call_deepseek_api(prompt: str, pro_mode: bool = False) -> str:
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        st.error(f"Erreur API DeepSeek: {str(e)}")
+        st.error(f"Erreur API: {str(e)}")
         return None
 
 # ----------------------------
@@ -112,7 +140,7 @@ def generate_pro_prompt(entreprise, secteur, localisation):
 Format Markdown strict avec emojis pour hiérarchiser l'information."""
 
 # ----------------------------
-# FONCTIONS D'INTERFACE
+# INTERFACE UTILISATEUR
 # ----------------------------
 
 def authenticate():
@@ -123,43 +151,44 @@ def authenticate():
         st.session_state.history = load_history()
     
     if not st.session_state.authenticated:
-        st.title("🔐 Connexion")
-        username = st.text_input("Identifiant")
-        password = st.text_input("Mot de passe", type="password")
+        st.title("🔐 Connexion à l'Assistant Prospection")
         
-        if st.button("Se connecter"):
-            if username in USER_CREDENTIALS and USER_CREDENTIALS[username] == password:
-                st.session_state.authenticated = True
-                st.session_state.current_user = username
-                st.rerun()
-            else:
-                st.error("Identifiants incorrects")
+        with st.form("auth_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                username = st.text_input("👤 Identifiant")
+            with col2:
+                password = st.text_input("🔒 Mot de passe", type="password")
+            
+            if st.form_submit_button("Se connecter"):
+                if username in USER_CREDENTIALS and USER_CREDENTIALS[username] == password:
+                    st.session_state.authenticated = True
+                    st.session_state.current_user = username
+                    st.rerun()
+                else:
+                    st.error("Identifiant ou mot de passe incorrect")
         st.stop()
 
-def app_sidebar():
-    """Configure la sidebar"""
-    with st.sidebar:
-        st.info(f"""
-        **Session:** {st.session_state.current_user}
-        **Version:** VB1,1DS
-        **Dernière connexion:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
-        """)
-        
-        st.markdown("---")
-        st.subheader("📋 Historique complet")
-        
-        if not st.session_state.history:
-            st.write("Aucune recherche enregistrée")
-        else:
-            for search in reversed(st.session_state.history[-5:]):
-                st.caption(f"{search['entreprise']} ({search['date'].split()[0]})")
-        
-        if st.button("🔒 Déconnexion"):
-            st.session_state.clear()
-            st.rerun()
+def display_results_container(content):
+    """Affiche les résultats dans un conteneur responsive"""
+    st.markdown(f"""
+    <div style="
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        margin-top: 20px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        max-width: 100%;
+    ">
+        <div style="max-width: 100%; overflow-x: auto;">
+            {content}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def main_app_interface():
-    """Interface principale avec intégration réelle de DeepSeek"""
+    """Interface principale"""
     st.title("🤖 ASSISTANT Prospection Ametis")
     st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
     
@@ -178,7 +207,7 @@ def main_app_interface():
             recherche_pro = st.checkbox("Mode PRO (analyse approfondie)")
         
         submitted = st.form_submit_button("Lancer la recherche")
-        st.caption("*Champs obligatoires")
+        st.caption("*Champs obligatoires - Les données sont estimées si non publiques")
     
     # Traitement de la recherche
     if submitted:
@@ -187,11 +216,11 @@ def main_app_interface():
         else:
             with st.spinner("🔍 Analyse en cours avec DeepSeek..."):
                 try:
-                    # Génération du prompt adapté
+                    # Génération du prompt
                     prompt = generate_pro_prompt(nom_entreprise, secteur_cible, localisation) if recherche_pro else \
                              generate_standard_prompt(nom_entreprise, secteur_cible, localisation)
                     
-                    # Appel réel à l'API DeepSeek
+                    # Appel API
                     start_time = time.time()
                     api_response = call_deepseek_api(prompt, recherche_pro)
                     
@@ -201,7 +230,7 @@ def main_app_interface():
                         # Affichage des résultats
                         st.success(f"Analyse complétée en {processing_time:.2f}s")
                         st.subheader(f"📊 Résultats pour {nom_entreprise}")
-                        st.markdown(api_response, unsafe_allow_html=True)
+                        display_results_container(api_response)
                         
                         # Mise à jour historique
                         new_entry = {
@@ -217,19 +246,42 @@ def main_app_interface():
                         
                         # Export PDF
                         pdf_report = generate_pdf_report({
-                            "entreprise": nom_entreprise,
-                            "analyse": api_response
+                            'entreprise': nom_entreprise,
+                            'analyse': api_response
                         })
                         
-                        st.download_button(
-                            label="📄 Exporter en PDF",
-                            data=pdf_report,
-                            file_name=f"rapport_prospection_{nom_entreprise}.pdf",
-                            mime="application/pdf"
-                        )
+                        if pdf_report:
+                            st.download_button(
+                                label="📄 Exporter en PDF",
+                                data=pdf_report,
+                                file_name=f"rapport_{nom_entreprise}.pdf",
+                                mime="application/pdf"
+                            )
                     
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse: {str(e)}")
+
+def app_sidebar():
+    """Configure la sidebar"""
+    with st.sidebar:
+        st.info(f"""
+        **Session:** {st.session_state.current_user}
+        **Version:** VB1,1DS
+        **Dernière activité:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
+        """)
+        
+        st.markdown("---")
+        st.subheader("📋 Historique complet")
+        
+        if not st.session_state.history:
+            st.write("Aucune recherche enregistrée")
+        else:
+            for search in reversed(st.session_state.history[-5:]):
+                st.caption(f"{search['entreprise']} ({search['date'].split()[0]}) - {search['mode']}")
+        
+        if st.button("🔒 Déconnexion"):
+            st.session_state.clear()
+            st.rerun()
 
 # ----------------------------
 # FONCTION PRINCIPALE
@@ -237,29 +289,9 @@ def main_app_interface():
 
 def main():
     """Point d'entrée principal"""
-    # Chargement des variables d'environnement
-    load_dotenv('USER_CREDENTIALS.env')
-    
-    # Configuration des identifiants
-    global USER_CREDENTIALS
-    USER_CREDENTIALS = {
-        "admin": os.getenv("ADMIN", "admin"),
-        "NPI": os.getenv("NPI", "Ametis2025"),
-        "OB0": os.getenv("OB0", "Ametis2025"),
-        "NDS": os.getenv("NDS", "Ametis2025"),
-        "GBE": os.getenv("GBE", "Ametis2025"),
-        "SSZ": os.getenv("SSZ", "Ametis2025"),
-        "WVA": os.getenv("WVA", "Ametis2025"),
-        "PMO": os.getenv("PMO", "Ametis2025"),
-        "JNB": os.getenv("JNB", "Ametis2025"),
-        "LCA": os.getenv("LCA", "Ametis2025"),
-        "SNA": os.getenv("SNA", "Ametis2025"),
-        "YCB": os.getenv("YCB", "Ametis2025")
-    }
-    
     # Configuration de la page
     st.set_page_config(
-        page_title="Assistant Prospection Ametis VBeta V1,1DS",
+        page_title="Assistant Prospection Ametis",
         layout="centered",
         page_icon="🤖",
         menu_items={
@@ -275,7 +307,7 @@ def main():
     app_sidebar()
 
 # ----------------------------
-# POINT D'ENTRÉE
+# EXECUTION
 # ----------------------------
 
 if __name__ == "__main__":
