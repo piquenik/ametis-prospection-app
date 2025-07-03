@@ -23,7 +23,7 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    
+
     .main-container {
         max-width: 900px;
         padding: 2rem;
@@ -36,14 +36,13 @@ st.markdown("""
         margin-top: 1rem;
         word-wrap: break-word;
     }
-    
-    /* Animation de chargement */
+
     @keyframes pulse {
         0% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.7; }
         100% { transform: scale(1); opacity: 1; }
     }
-    
+
     .loading-container {
         text-align: center;
         margin: 2rem 0;
@@ -51,19 +50,19 @@ st.markdown("""
         border-radius: 10px;
         background-color: #f0f2f6;
     }
-    
+
     .loading-logo {
         font-size: 2.5rem;
         animation: pulse 2s infinite;
         margin-bottom: 1rem;
     }
-    
+
     .loading-text {
         color: #4b8bff;
         font-weight: bold;
         margin-top: 1rem;
     }
-    
+
     @media (max-width: 640px) {
         .main-container {padding: 1rem;}
         .report-container {padding: 1rem;}
@@ -73,7 +72,7 @@ st.markdown("""
 
 # Authentification
 def check_password():
-    password = st.text_input("🔒 Mot de passe d'accès :", type="password")
+    password = st.text_input("🔐 Mot de passe d'accès :", type="password")
     if password != os.getenv("APP_PASSWORD", "Ametis2025"):
         st.error("Accès non autorisé")
         st.stop()
@@ -83,7 +82,7 @@ if not check_password():
     st.stop()
 
 # Header
-st.title("🫣 ASSISTANT Prospection Ametis")
+st.title("🤣 ASSISTANT Prospection Ametis")
 st.markdown("-VB1,1DS")
 
 # Paramètres
@@ -102,7 +101,7 @@ with st.form("recherche_form"):
         ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
          "Electronique/Technique", "Autre"]
     )
-    
+
     col1, col2 = st.columns(2)
     with col1:
         recherche_standard = st.form_submit_button("🔍 Recherche Standard")
@@ -125,6 +124,9 @@ def generate_prompt(entreprise, secteur):
 Format Markdown strict."""
 
 # Journal d'activité
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
 if 'last_request' not in st.session_state:
     st.session_state.last_request = {
         'date': None,
@@ -140,19 +142,16 @@ def create_pdf(entreprise, secteur, contenu):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    
-    # En-tête
+
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, txt=f"Fiche Prospection: {entreprise}", ln=1, align='C')
     pdf.set_font("Arial", 'I', 12)
     pdf.cell(200, 10, txt=f"Secteur: {secteur}", ln=1, align='C')
     pdf.ln(10)
-    
-    # Nettoyage des caractères
+
     def clean_text(text):
         return text.encode('latin-1', 'replace').decode('latin-1')
-    
-    # Contenu formaté
+
     pdf.set_font("Arial", size=10)
     lines = contenu.split('\n')
     for line in lines:
@@ -167,17 +166,15 @@ def create_pdf(entreprise, secteur, contenu):
         else:
             pdf.multi_cell(0, 8, txt=clean_line.strip())
         pdf.ln(2)
-    
-    # Pied de page
+
     pdf.set_y(-15)
     pdf.set_font('Arial', 'I', 8)
     pdf.cell(0, 10, clean_text(f"Généré le {datetime.now(timezone(timedelta(hours=2))).strftime('%d/%m/%Y %H:%M')} par Assistant Prospection Ametis"), 0, 0, 'C')
-    
+
     return pdf.output(dest='S').encode('latin-1')
 
 # Traitement de la recherche avec animation
 if recherche_standard or recherche_pro:
-    # Afficher l'animation de chargement
     loading_placeholder = st.empty()
     loading_placeholder.markdown("""
     <div class="loading-container">
@@ -191,7 +188,7 @@ if recherche_standard or recherche_pro:
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     with st.spinner("Analyse en cours..."):
         payload = {
             "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
@@ -212,18 +209,14 @@ if recherche_standard or recherche_pro:
                 timeout=120 if recherche_pro else 60
             )
 
-            # Effacer l'animation
             loading_placeholder.empty()
 
             if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
                 tokens_used = result["usage"]["total_tokens"]
-                
-                # Génération du PDF
+
                 pdf_bytes = create_pdf(nom_entreprise, secteur_cible, content)
-                
-                # Mise à jour du journal
                 french_tz = timezone(timedelta(hours=2))
                 st.session_state.last_request = {
                     'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
@@ -233,17 +226,26 @@ if recherche_standard or recherche_pro:
                     'last_report': content,
                     'pdf_bytes': pdf_bytes
                 }
-                
-                # Affichage du résultat
+
+                st.session_state.history.append({
+                    'date': st.session_state.last_request['date'],
+                    'entreprise': nom_entreprise,
+                    'mode': "PRO" if recherche_pro else "Standard",
+                    'tokens': tokens_used,
+                    'content': content,
+                    'pdf_bytes': pdf_bytes
+                })
+                st.session_state.history = st.session_state.history[-10:]
+
                 st.markdown("---")
                 st.success("✅ Analyse terminée")
-                
+
                 with st.container():
                     st.markdown(
                         f'<div class="report-container">{content}</div>',
                         unsafe_allow_html=True
                     )
-                
+
                 if recherche_pro:
                     st.info("🌐 Recherche web activée | Mode approfondi")
             else:
@@ -253,7 +255,6 @@ if recherche_standard or recherche_pro:
             loading_placeholder.empty()
             st.error(f"Erreur: {str(e)}")
 
-# Bouton d'export PDF
 if st.session_state.last_request['last_report']:
     st.download_button(
         label="📄 Exporter en PDF",
@@ -273,14 +274,27 @@ with st.sidebar:
     2. Sélectionnez le secteur
     3. Lancez la recherche
     """)
-    
+
     st.markdown("---")
-    st.subheader("Journal d'activité")
-    st.write(f"**Dernière requête (UTC+2):** {st.session_state.last_request['date'] or 'Aucune'}")
-    st.write(f"**Entreprise:** {st.session_state.last_request['entreprise'] or 'Aucune'}")
-    st.write(f"**Mode:** {st.session_state.last_request['mode'] or 'Aucun'}")
-    st.write(f"**Tokens utilisés:** {st.session_state.last_request['tokens'] or '0'}")
-    
-    if st.button("🔄 Réinitialiser"):
+    st.subheader("🕒 Historique des 10 dernières requêtes")
+
+    if st.session_state.history:
+        for i, req in enumerate(reversed(st.session_state.history)):
+            with st.expander(f"{req['entreprise']} ({req['mode']}) - {req['date']}", expanded=False):
+                if st.button("🔁 Recharger cette fiche", key=f"reload_{i}"):
+                    st.session_state.last_request = {
+                        'date': req['date'],
+                        'entreprise': req['entreprise'],
+                        'mode': req['mode'],
+                        'tokens': req['tokens'],
+                        'last_report': req['content'],
+                        'pdf_bytes': req['pdf_bytes']
+                    }
+                    st.rerun()
+    else:
+        st.write("Aucune requête enregistrée.")
+
+    st.markdown("---")
+    if st.button("🔄 Réinitialiser session"):
         st.session_state.clear()
         st.rerun()
