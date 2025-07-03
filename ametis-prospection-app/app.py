@@ -1,119 +1,119 @@
 import streamlit as st
 import requests
-from dotenv import load_dotenv
 import os
-import json
+import time
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
-import time
-import logging
 
-# ----------------------------
-# CONFIGURATION INITIALE
-# ----------------------------
+# Configuration de la page
+st.set_page_config(
+    page_title="Assistant Prospection Ametis VBeta V1,1DS",
+    layout="centered",
+    page_icon="🤖",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
+)
 
-# Constantes
-HISTORY_FILE = "search_history.json"
-MAX_HISTORY_ENTRIES = 100
-DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-
-# Chargement des variables d'environnement
-load_dotenv('USER_CREDENTIALS.env')
-
-# Configuration des identifiants
-USER_CREDENTIALS = {
-    "admin": os.getenv("ADMIN", "admin"),
-    "NPI": os.getenv("NPI", "Ametis2025"),
-    "OB0": os.getenv("OB0", "Ametis2025"),
-    "NDS": os.getenv("NDS", "Ametis2025"),
-    "GBE": os.getenv("GBE", "Ametis2025"),
-    "SSZ": os.getenv("SSZ", "Ametis2025"),
-    "WVA": os.getenv("WVA", "Ametis2025"),
-    "PMO": os.getenv("PMO", "Ametis2025"),
-    "JNB": os.getenv("JNB", "Ametis2025"),
-    "LCA": os.getenv("LCA", "Ametis2025"),
-    "SNA": os.getenv("SNA", "Ametis2025"),
-    "YCB": os.getenv("YCB", "Ametis2025")
-}
-
-# ----------------------------
-# FONCTIONS UTILITAIRES
-# ----------------------------
-
-def load_history():
-    """Charge l'historique des recherches depuis le fichier JSON"""
-    try:
-        if not os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-                json.dump([], f, ensure_ascii=False)
-            return []
-        
-        with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        st.error(f"Erreur historique: {str(e)}")
-        return []
-
-def save_history(history):
-    """Sauvegarde l'historique des recherches"""
-    try:
-        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-            json.dump(history[-MAX_HISTORY_ENTRIES:], f, ensure_ascii=False)
-    except Exception as e:
-        st.error(f"Erreur sauvegarde: {str(e)}")
-
-def generate_pdf_report(data):
-    """Génère un rapport PDF avec police standard"""
-    try:
-        pdf = FPDF()
-        pdf.add_page()
-        
-        # Utilisation de la police standard Arial
-        pdf.set_font("Arial", size=12)
-        
-        pdf.cell(200, 10, txt="Rapport de Prospection Ametis", ln=1, align='C')
-        pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
-        
-        # Nettoyage du texte pour PDF (gestion des caractères spéciaux)
-        clean_text = data.get('analyse', '').replace('€', 'EUR').replace('\u20ac', 'EUR')
-        pdf.multi_cell(0, 10, txt=clean_text)
-        
-        return pdf.output(dest='S').encode('latin-1', 'replace')
-    except Exception as e:
-        st.error(f"Erreur PDF: {str(e)}")
-        return None
-
-def call_deepseek_api(prompt: str, reasoner: bool = False) -> str:
-    """Appel à l'API DeepSeek avec paramètre reasoner pour R1"""
-    headers = {
-        "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
-        "Content-Type": "application/json"
+# Style CSS avec animation
+st.markdown("""
+<style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    .main-container {
+        max-width: 900px;
+        padding: 2rem;
+        margin: 0 auto;
+    }
+    .report-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-top: 1rem;
+        word-wrap: break-word;
     }
     
-    payload = {
-        "model": "deepseek-reasoner" if reasoner else "deepseek-chat",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "max_tokens": 1200
+    /* Animation de chargement */
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
     }
     
-    try:
-        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        st.error(f"Erreur API: {str(e)}")
-        return None
+    .loading-container {
+        text-align: center;
+        margin: 2rem 0;
+        padding: 2rem;
+        border-radius: 10px;
+        background-color: #f0f2f6;
+    }
+    
+    .loading-logo {
+        font-size: 2.5rem;
+        animation: pulse 2s infinite;
+        margin-bottom: 1rem;
+    }
+    
+    .loading-text {
+        color: #4b8bff;
+        font-weight: bold;
+        margin-top: 1rem;
+    }
+    
+    @media (max-width: 640px) {
+        .main-container {padding: 1rem;}
+        .report-container {padding: 1rem;}
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# ----------------------------
-# PROMPTS METIER
-# ----------------------------
+# Authentification
+def check_password():
+    password = st.text_input("🔒 Mot de passe d'accès :", type="password")
+    if password != os.getenv("APP_PASSWORD", "Ametis2025"):
+        st.error("Accès non autorisé")
+        st.stop()
+    return True
 
-def generate_standard_prompt(entreprise, secteur, localisation):
+if not check_password():
+    st.stop()
+
+# Header
+st.title("🫣 ASSISTANT Prospection Ametis")
+st.markdown("-VB1,1DS")
+
+# Paramètres
+with st.expander("⚙️ Paramètres avancés", expanded=False):
+    col1, col2 = st.columns(2)
+    with col1:
+        temperature = st.slider("Niveau de précision", 0.1, 1.0, 0.6)
+    with col2:
+        max_tokens = st.slider("Longueur de réponse", 500, 2000, 1200)
+
+# Formulaire de recherche
+with st.form("recherche_form"):
+    nom_entreprise = st.text_input("Nom de l'entreprise (Nom + Dep + Ville ex: Actibio 53 changé)*")
+    secteur_cible = st.selectbox(
+        "Secteur d'activité*",
+        ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
+         "Electronique/Technique", "Autre"]
+    )
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        recherche_standard = st.form_submit_button("🔍 Recherche Standard")
+    with col2:
+        recherche_pro = st.form_submit_button("🚀 Recherche PRO")
+
+# Configuration API
+def generate_prompt(entreprise, secteur):
     return f"""Génère une fiche entreprise structurée pour :
 - Entreprise: {entreprise}
 - Secteur: {secteur}
-- Localisation: {localisation}
 
 ### Structure requise:
 1. **Résumé** (secteur + localisation)
@@ -124,190 +124,163 @@ def generate_standard_prompt(entreprise, secteur, localisation):
 
 Format Markdown strict."""
 
-def generate_pro_prompt(entreprise, secteur, localisation):
-    return f"""Génère une analyse approfondie pour :
-- Entreprise: {entreprise}
-- Secteur: {secteur}
-- Localisation: {localisation}
+# Journal d'activité
+if 'last_request' not in st.session_state:
+    st.session_state.last_request = {
+        'date': None,
+        'entreprise': None,
+        'mode': None,
+        'tokens': None,
+        'last_report': None,
+        'pdf_bytes': None
+    }
 
-### Structure requise:
-1. **Analyse Stratégique** (positionnement concurrentiel)
-2. **Potentiel Commercial** (opportunités Ametis)
-3. **Décideurs Clés** (noms + postes vérifiés)
-4. **Recommandations** (approche personnalisée)
-5. **Risques** (éléments à considérer)
-
-Format Markdown strict avec emojis pour hiérarchiser l'information."""
-
-# ----------------------------
-# INTERFACE UTILISATEUR
-# ----------------------------
-
-def authenticate():
-    """Gère l'authentification"""
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-        st.session_state.current_user = None
-        st.session_state.history = load_history()
+# Fonction de création du PDF
+def create_pdf(entreprise, secteur, contenu):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
     
-    if not st.session_state.authenticated:
-        st.title("🔐 Connexion à l'Assistant Prospection")
-        
-        with st.form("auth_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                username = st.text_input("👤 Identifiant")
-            with col2:
-                password = st.text_input("🔒 Mot de passe", type="password")
-            
-            if st.form_submit_button("Se connecter"):
-                if username in USER_CREDENTIALS and USER_CREDENTIALS[username] == password:
-                    st.session_state.authenticated = True
-                    st.session_state.current_user = username
-                    st.rerun()
-                else:
-                    st.error("Identifiant ou mot de passe incorrect")
-        st.stop()
+    # En-tête
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"Fiche Prospection: {entreprise}", ln=1, align='C')
+    pdf.set_font("Arial", 'I', 12)
+    pdf.cell(200, 10, txt=f"Secteur: {secteur}", ln=1, align='C')
+    pdf.ln(10)
+    
+    # Nettoyage des caractères
+    def clean_text(text):
+        return text.encode('latin-1', 'replace').decode('latin-1')
+    
+    # Contenu formaté
+    pdf.set_font("Arial", size=10)
+    lines = contenu.split('\n')
+    for line in lines:
+        clean_line = clean_text(line)
+        if clean_line.startswith('### '):
+            pdf.set_font('Arial', 'B', 12)
+            pdf.cell(200, 8, txt=clean_line[4:].strip(), ln=1)
+            pdf.set_font('Arial', '', 10)
+        elif clean_line.startswith('- '):
+            pdf.cell(10)
+            pdf.cell(200, 8, txt='- ' + clean_line[2:].strip(), ln=1)
+        else:
+            pdf.multi_cell(0, 8, txt=clean_line.strip())
+        pdf.ln(2)
+    
+    # Pied de page
+    pdf.set_y(-15)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, clean_text(f"Généré le {datetime.now(timezone(timedelta(hours=2))).strftime('%d/%m/%Y %H:%M')} par Assistant Prospection Ametis"), 0, 0, 'C')
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-def display_results_container(content):
-    """Affiche les résultats dans un conteneur responsive"""
-    st.markdown(f"""
-    <div style="
-        padding: 20px;
-        border-radius: 10px;
-        background-color: #f8f9fa;
-        margin-top: 20px;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        max-width: 100%;
-    ">
-        <div style="max-width: 100%; overflow-x: auto;">
-            {content}
+# Traitement de la recherche avec animation
+if recherche_standard or recherche_pro:
+    # Afficher l'animation de chargement
+    loading_placeholder = st.empty()
+    loading_placeholder.markdown("""
+    <div class="loading-container">
+        <div class="loading-logo">🔍</div>
+        <h3 class="loading-text">Ametis Prospect+</h3>
+        <p>Notre équipe analyse les données...</p>
+        <div style="font-size: 1.5rem;">
+            <span style="animation: pulse 2s infinite;">🤖</span>
+            <span style="animation: pulse 2s infinite 0.5s;">📊</span>
+            <span style="animation: pulse 2s infinite 1s;">💼</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-def main_app_interface():
-    """Interface principale"""
-    st.title("🤖 ASSISTANT Prospection Ametis")
-    st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
     
-    # Formulaire de recherche
-    with st.form("search_form"):
-        st.subheader("🔍 Nouvelle recherche")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            nom_entreprise = st.text_input("Nom de l'entreprise*", placeholder="Ex: Société XYZ")
-            secteur_cible = st.selectbox("Secteur d'activité*", [
-                "Agroalimentaire", "Technologie", "Santé", "Finance", "Industrie", "Commerce", "Services"
-            ])
-        with col2:
-            localisation = st.text_input("Localisation*", placeholder="Ville ou région")
-            reasoner_mode = st.checkbox("Mode R1 (raisonnement avancé)")
-        
-        submitted = st.form_submit_button("Lancer la recherche")
-        st.caption("*Champs obligatoires - Les données sont estimées si non publiques")
-    
-    # Traitement de la recherche
-    if submitted:
-        if not nom_entreprise or not localisation:
-            st.warning("Veuillez remplir tous les champs obligatoires")
-        else:
-            with st.spinner("🔍 Analyse en cours avec DeepSeek..."):
-                try:
-                    # Génération du prompt
-                    prompt = generate_pro_prompt(nom_entreprise, secteur_cible, localisation)
-                    
-                    # Appel API avec paramètre reasoner
-                    start_time = time.time()
-                    api_response = call_deepseek_api(prompt, reasoner_mode)
-                    
-                    if api_response:
-                        processing_time = time.time() - start_time
-                        
-                        # Affichage des résultats
-                        st.success(f"Analyse complétée en {processing_time:.2f}s")
-                        st.subheader(f"📊 Résultats pour {nom_entreprise}")
-                        display_results_container(api_response)
-                        
-                        # Mise à jour historique
-                        new_entry = {
-                            'user': st.session_state.current_user,
-                            'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            'entreprise': nom_entreprise,
-                            'mode': "R1" if reasoner_mode else "Standard",
-                            'secteur': secteur_cible,
-                            'tokens': len(prompt.split())  # Estimation
-                        }
-                        st.session_state.history.append(new_entry)
-                        save_history(st.session_state.history)
-                        
-                        # Export PDF
-                        pdf_report = generate_pdf_report({
-                            'entreprise': nom_entreprise,
-                            'analyse': api_response
-                        })
-                        
-                        if pdf_report:
-                            st.download_button(
-                                label="📄 Exporter en PDF",
-                                data=pdf_report,
-                                file_name=f"rapport_{nom_entreprise}.pdf",
-                                mime="application/pdf"
-                            )
-                    
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse: {str(e)}")
-
-def app_sidebar():
-    """Configure la sidebar"""
-    with st.sidebar:
-        st.info(f"""
-        **Session:** {st.session_state.current_user}
-        **Version:** VB1,1DS
-        **Dernière activité:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
-        """)
-        
-        st.markdown("---")
-        st.subheader("📋 Historique complet")
-        
-        if not st.session_state.history:
-            st.write("Aucune recherche enregistrée")
-        else:
-            for search in reversed(st.session_state.history[-5:]):
-                st.caption(f"{search['entreprise']} ({search['date'].split()[0]}) - {search['mode']}")
-        
-        if st.button("🔒 Déconnexion"):
-            st.session_state.clear()
-            st.rerun()
-
-# ----------------------------
-# FONCTION PRINCIPALE
-# ----------------------------
-
-def main():
-    """Point d'entrée principal"""
-    # Configuration de la page
-    st.set_page_config(
-        page_title="Assistant Prospection Ametis",
-        layout="centered",
-        page_icon="🤖",
-        menu_items={
-            'Get Help': None,
-            'Report a bug': None,
-            'About': None
+    with st.spinner("Analyse en cours..."):
+        payload = {
+            "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "Expert en analyse B2B"},
+                {"role": "user", "content": generate_prompt(nom_entreprise, secteur_cible)}
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "web_search": recherche_pro
         }
+
+        try:
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+                json=payload,
+                timeout=120 if recherche_pro else 60
+            )
+
+            # Effacer l'animation
+            loading_placeholder.empty()
+
+            if response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                tokens_used = result["usage"]["total_tokens"]
+                
+                # Génération du PDF
+                pdf_bytes = create_pdf(nom_entreprise, secteur_cible, content)
+                
+                # Mise à jour du journal
+                french_tz = timezone(timedelta(hours=2))
+                st.session_state.last_request = {
+                    'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
+                    'entreprise': nom_entreprise,
+                    'mode': "PRO" if recherche_pro else "Standard",
+                    'tokens': tokens_used,
+                    'last_report': content,
+                    'pdf_bytes': pdf_bytes
+                }
+                
+                # Affichage du résultat
+                st.markdown("---")
+                st.success("✅ Analyse terminée")
+                
+                with st.container():
+                    st.markdown(
+                        f'<div class="report-container">{content}</div>',
+                        unsafe_allow_html=True
+                    )
+                
+                if recherche_pro:
+                    st.info("🌐 Recherche web activée | Mode approfondi")
+            else:
+                st.error(f"Erreur API: {response.status_code}")
+
+        except Exception as e:
+            loading_placeholder.empty()
+            st.error(f"Erreur: {str(e)}")
+
+# Bouton d'export PDF
+if st.session_state.last_request['last_report']:
+    st.download_button(
+        label="📄 Exporter en PDF",
+        data=st.session_state.last_request['pdf_bytes'],
+        file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
+        mime="application/pdf",
+        key="download_pdf",
+        help="Télécharger la fiche au format PDF",
+        use_container_width=True
     )
+
+# Sidebar
+with st.sidebar:
+    st.info("""
+    **Instructions:**
+    1. Renseignez le nom de l'entreprise
+    2. Sélectionnez le secteur
+    3. Lancez la recherche
+    """)
     
-    # Flux d'exécution
-    authenticate()
-    main_app_interface()
-    app_sidebar()
-
-# ----------------------------
-# EXECUTION
-# ----------------------------
-
-if __name__ == "__main__":
-    main()
+    st.markdown("---")
+    st.subheader("Journal d'activité")
+    st.write(f"**Dernière requête (UTC+2):** {st.session_state.last_request['date'] or 'Aucune'}")
+    st.write(f"**Entreprise:** {st.session_state.last_request['entreprise'] or 'Aucune'}")
+    st.write(f"**Mode:** {st.session_state.last_request['mode'] or 'Aucun'}")
+    st.write(f"**Tokens utilisés:** {st.session_state.last_request['tokens'] or '0'}")
+    
+    if st.button("🔄 Réinitialiser"):
+        st.session_state.clear()
+        st.rerun()
