@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-load_dotenv()  # Charge le fichier .env par défaut
 import streamlit as st
 import requests
 import os
