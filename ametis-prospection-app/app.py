@@ -83,8 +83,8 @@ if not check_password():
     st.stop()
 
 # Header
-st.title("🤖 Assistant Prospection Ametis Vb1,1DS")
-st.markdown("---")
+st.title("🤖 Prospection Ametis Vb1,1DS")
+st.markdown("-VB1,1DS")
 
 # Paramètres
 with st.expander("⚙️ Paramètres avancés", expanded=False):
