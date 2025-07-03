@@ -89,7 +89,7 @@ def generate_pdf_report(data):
         st.error("Erreur lors de la génération du PDF")
         return None
 
-def call_deepseek_api(prompt: str, deepseek-reasoner : bool = False) -> str:
+def call_deepseek_api(prompt: str, reasoner : bool = False) -> str:
     """Appel robuste à l'API DeepSeek avec gestion des erreurs"""
     headers = {
         "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
