@@ -91,7 +91,7 @@ def call_deepseek_api(prompt: str, pro_mode: bool = False) -> str:
     }
     
     payload = {
-        "model": "deepseek-chat" if not pro_mode else "deepseek-pro",
+        "model": "deepseek-chat" if not pro_mode else "deepseek-reasoner",
         "messages": [{
             "role": "user",
             "content": prompt
