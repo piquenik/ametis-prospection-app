@@ -94,7 +94,7 @@ def call_deepseek_api(prompt: str, reasoner: bool = False) -> str:
         "model": "deepseek-reasoner" if reasoner else "deepseek-chat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7,
-        "max_tokens": 2000
+        "max_tokens": 1200
     }
     
     try:
