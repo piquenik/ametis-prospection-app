@@ -51,7 +51,7 @@ headers = {
     "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"
 }
 
-# --- Prompt expert ---
+# --- Prompt expert CORRIGÉ ---
 PROMPT_EXPERT = f"""
 Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-précise pour :
 - Entreprise : {nom_entreprise}
@@ -66,16 +66,29 @@ Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-pr
 ### Template OBLIGATOIRE :
 ```markdown
 ### 1. Résumé synthétique
-[...]
+[🏢 Secteur] | [📍 Localisation] 
+[1 phrase combinant secteur et localisation]
 
 ### 2. Description activité
-[...]
+[2-3 phrases maximum]
+- Activité principale : [détail]
+- Spécialités : [liste à puces]
+- Positionnement : [1 phrase]
 
-### 3. Chiffres clés (avec sources)
-[...]
+### 3. Chiffres clés
+📊 CA : [valeur] | 📈 Tendance
+👥 Effectifs : [nombre]
+🏭 Sites : [nombre]
+ℹ️ Source : [lien]
 
-### 4. Signaux récents (6 mois max)
-[...]
+### 4. Signaux récents
+📰 Derniers 6 mois
+- [Événement 1 avec date]
+- [Événement 2 avec date]
+- Analyse : [1 phrase]
 
-### 5. Contacts (vérifiés)
-[...]
+### 5. Contacts
+🔍 Recherche vérifiée
+- Production : [Nom] | [Contact] | [Tel]
+- Qualité : [Nom] | [Contact] | [Tel]
+- Technique : [Nom] | [Contact] | [Tel]
