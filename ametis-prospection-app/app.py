@@ -318,7 +318,7 @@ if st.session_state.last_request['last_report']:
         data=st.session_state.last_request['pdf_bytes'],
         file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
         mime="application/pdf",
-        key="download_pdf",
+        key=f"pdf_{st.session_state.last_request['entreprise']}_{st.session_state.last_request['date']}",
         help="Télécharger la fiche au format PDF",
         use_container_width=True
     )
@@ -362,14 +362,26 @@ if st.session_state.role == "admin":
     st.subheader("🔒 Journal des Recherches (admin)")
     try:
         if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, "r") as f:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
                 log_data = json.load(f)
             if log_data:
                 st.dataframe(log_data[::-1])
+
+                # Génération CSV
                 csv_data = "datetime,user,entreprise,secteur,mode,tokens\n" + "\n".join(
-                    [f'{r["datetime"]},{r["user"]},{r["entreprise"]},{r["secteur"]},{r["mode"]},{r["tokens"]}' for r in log_data]
+                    f"{r['datetime']},{r['user']},{r['entreprise']},{r['secteur']},{r['mode']},{r['tokens']}"
+                    for r in log_data
                 )
-                st.download_button("📃 Télécharger CSV", data=csv_data, file_name="journal_recherches.csv", mime="text/csv")
+
+                # Téléchargement sans rechargement de page
+                st.download_button(
+                    label="📃 Télécharger CSV",
+                    data=csv_data,
+                    file_name="journal_recherches.csv",
+                    mime="text/csv",
+                    key=f"csv_{datetime.now().isoformat()}",
+                    use_container_width=True
+                )
             else:
                 st.info("Aucune donnée enregistrée.")
         else:
