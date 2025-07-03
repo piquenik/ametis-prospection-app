@@ -2,8 +2,17 @@ import streamlit as st
 import requests
 import os
 import time
+import json
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
+
+# Configuration initiale
+HISTORY_FILE = "search_history.json"
+USER_CREDENTIALS = {
+    "admin": os.getenv("ADMIN_PASSWORD", "AdminAmetis2025"),
+    "commercial1": os.getenv("COMMERCIAL1_PWD", "Commercial123"),
+    "commercial2": os.getenv("COMMERCIAL2_PWD", "Commercial456")
+}
 
 # Configuration de la page
 st.set_page_config(
@@ -52,16 +61,11 @@ st.markdown("""
         background-color: #f0f2f6;
     }
     
-    .loading-logo {
-        font-size: 2.5rem;
-        animation: pulse 2s infinite;
+    .admin-dashboard {
+        background-color: #fff4f4;
+        border-radius: 10px;
+        padding: 1rem;
         margin-bottom: 1rem;
-    }
-    
-    .loading-text {
-        color: #4b8bff;
-        font-weight: bold;
-        margin-top: 1rem;
     }
     
     @media (max-width: 640px) {
@@ -71,216 +75,131 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Authentification
-def check_password():
-    password = st.text_input("🔒 Mot de passe d'accès :", type="password")
-    if password != os.getenv("APP_PASSWORD", "Ametis2025"):
-        st.error("Accès non autorisé")
-        st.stop()
-    return True
+# Gestion des données
+def load_history():
+    try:
+        with open(HISTORY_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-if not check_password():
-    st.stop()
+def save_history(history):
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history[-100:], f)  # Garde seulement les 100 dernières entrées
+
+# Authentification
+def authenticate():
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+        st.session_state.current_user = None
+        st.session_state.history = load_history()
+
+    if not st.session_state.authenticated:
+        col1, col2 = st.columns(2)
+        with col1:
+            username = st.text_input("👤 Identifiant")
+        with col2:
+            password = st.text_input("🔒 Mot de passe", type="password")
+        
+        if st.button("Se connecter"):
+            if USER_CREDENTIALS.get(username) == password:
+                st.session_state.authenticated = True
+                st.session_state.current_user = username
+                st.rerun()
+            else:
+                st.error("Identifiant ou mot de passe incorrect")
+        st.stop()
+
+authenticate()
 
 # Header
-st.title("🫣 ASSISTANT Prospection Ametis")
-st.markdown("-VB1,1DS")
+st.title(f"🫣 ASSISTANT Prospection Ametis")
+st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
 
-# Paramètres
-with st.expander("⚙️ Paramètres avancés", expanded=False):
-    col1, col2 = st.columns(2)
-    with col1:
-        temperature = st.slider("Niveau de précision", 0.1, 1.0, 0.6)
-    with col2:
-        max_tokens = st.slider("Longueur de réponse", 500, 2000, 1200)
-
-# Formulaire de recherche
-with st.form("recherche_form"):
-    nom_entreprise = st.text_input("Nom de l'entreprise (Nom + Dep + Ville ex: Actibio 53 changé)*")
-    secteur_cible = st.selectbox(
-        "Secteur d'activité*",
-        ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
-         "Electronique/Technique", "Autre"]
-    )
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        recherche_standard = st.form_submit_button("🔍 Recherche Standard")
-    with col2:
-        recherche_pro = st.form_submit_button("🚀 Recherche PRO")
-
-# Configuration API
-def generate_prompt(entreprise, secteur):
-    return f"""Génère une fiche entreprise structurée pour :
-- Entreprise: {entreprise}
-- Secteur: {secteur}
-
-### Structure requise:
-1. **Résumé** (secteur + localisation)
-2. **Activité** (description courte)
-3. **Chiffres** (CA, effectifs, sites)
-4. **Actualité** (2-3 événements récents)
-5. **Contacts** (noms vérifiés uniquement)
-
-Format Markdown strict."""
-
-# Journal d'activité
-if 'last_request' not in st.session_state:
-    st.session_state.last_request = {
-        'date': None,
-        'entreprise': None,
-        'mode': None,
-        'tokens': None,
-        'last_report': None,
-        'pdf_bytes': None
-    }
-
-# Fonction de création du PDF
-def create_pdf(entreprise, secteur, contenu):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    # En-tête
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"Fiche Prospection: {entreprise}", ln=1, align='C')
-    pdf.set_font("Arial", 'I', 12)
-    pdf.cell(200, 10, txt=f"Secteur: {secteur}", ln=1, align='C')
-    pdf.ln(10)
-    
-    # Nettoyage des caractères
-    def clean_text(text):
-        return text.encode('latin-1', 'replace').decode('latin-1')
-    
-    # Contenu formaté
-    pdf.set_font("Arial", size=10)
-    lines = contenu.split('\n')
-    for line in lines:
-        clean_line = clean_text(line)
-        if clean_line.startswith('### '):
-            pdf.set_font('Arial', 'B', 12)
-            pdf.cell(200, 8, txt=clean_line[4:].strip(), ln=1)
-            pdf.set_font('Arial', '', 10)
-        elif clean_line.startswith('- '):
-            pdf.cell(10)
-            pdf.cell(200, 8, txt='- ' + clean_line[2:].strip(), ln=1)
+# Tableau de bord admin
+if st.session_state.current_user == "admin":
+    with st.expander("🔧 TABLEAU DE BORD ADMIN", expanded=True):
+        st.markdown("<div class='admin-dashboard'>", unsafe_allow_html=True)
+        
+        # Statistiques
+        st.subheader("📊 Statistiques")
+        total_searches = len(st.session_state.history)
+        pro_searches = len([h for h in st.session_state.history if h['mode'] == "PRO"])
+        
+        col1, col2 = st.columns(2)
+        col1.metric("Total recherches", total_searches)
+        col2.metric("Recherches PRO", pro_searches)
+        
+        # Dernières activités
+        st.subheader("🕒 Activités récentes")
+        if not st.session_state.history:
+            st.write("Aucune activité enregistrée")
         else:
-            pdf.multi_cell(0, 8, txt=clean_line.strip())
-        pdf.ln(2)
+            for i, search in enumerate(reversed(st.session_state.history[-5:])):
+                st.write(f"**{search['entreprise']}** ({search['date']})")
+                st.caption(f"Par {search['user']} | Mode: {search['mode']} | Tokens: {search['tokens']}")
+        
+        # Gestion des données
+        st.subheader("🗃️ Gestion des données")
+        if st.button("🗑️ Purger l'historique"):
+            st.session_state.history = []
+            save_history(st.session_state.history)
+            st.rerun()
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ... [Le reste de votre code existant (paramètres, formulaire, etc.) reste inchangé jusqu'au traitement de la recherche] ...
+
+# Dans la partie traitement de la recherche (après avoir obtenu la réponse API)
+if response.status_code == 200:
+    # ... [code existant] ...
     
-    # Pied de page
-    pdf.set_y(-15)
-    pdf.set_font('Arial', 'I', 8)
-    pdf.cell(0, 10, clean_text(f"Généré le {datetime.now(timezone(timedelta(hours=2))).strftime('%d/%m/%Y %H:%M')} par Assistant Prospection Ametis"), 0, 0, 'C')
+    # Mise à jour de l'historique
+    new_entry = {
+        'user': st.session_state.current_user,
+        'date': datetime.now(timezone(timedelta(hours=2))).strftime("%Y-%m-%d %H:%M:%S"),
+        'entreprise': nom_entreprise,
+        'mode': "PRO" if recherche_pro else "Standard",
+        'tokens': tokens_used,
+        'secteur': secteur_cible
+    }
     
-    return pdf.output(dest='S').encode('latin-1')
+    st.session_state.history.append(new_entry)
+    save_history(st.session_state.history)
 
-# Traitement de la recherche avec animation
-if recherche_standard or recherche_pro:
-    # Afficher l'animation de chargement
-    loading_placeholder = st.empty()
-    loading_placeholder.markdown("""
-    <div class="loading-container">
-        <div class="loading-logo">🔍</div>
-        <h3 class="loading-text">Ametis Prospect+</h3>
-        <p>Notre équipe analyse les données...</p>
-        <div style="font-size: 1.5rem;">
-            <span style="animation: pulse 2s infinite;">🤖</span>
-            <span style="animation: pulse 2s infinite 0.5s;">📊</span>
-            <span style="animation: pulse 2s infinite 1s;">💼</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    with st.spinner("Analyse en cours..."):
-        payload = {
-            "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
-            "messages": [
-                {"role": "system", "content": "Expert en analyse B2B"},
-                {"role": "user", "content": generate_prompt(nom_entreprise, secteur_cible)}
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "web_search": recherche_pro
-        }
+# ... [Le reste de votre code existant (affichage résultats, export PDF) reste inchangé] ...
 
-        try:
-            response = requests.post(
-                "https://api.deepseek.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
-                json=payload,
-                timeout=120 if recherche_pro else 60
-            )
-
-            # Effacer l'animation
-            loading_placeholder.empty()
-
-            if response.status_code == 200:
-                result = response.json()
-                content = result["choices"][0]["message"]["content"]
-                tokens_used = result["usage"]["total_tokens"]
-                
-                # Génération du PDF
-                pdf_bytes = create_pdf(nom_entreprise, secteur_cible, content)
-                
-                # Mise à jour du journal
-                french_tz = timezone(timedelta(hours=2))
-                st.session_state.last_request = {
-                    'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
-                    'entreprise': nom_entreprise,
-                    'mode': "PRO" if recherche_pro else "Standard",
-                    'tokens': tokens_used,
-                    'last_report': content,
-                    'pdf_bytes': pdf_bytes
-                }
-                
-                # Affichage du résultat
-                st.markdown("---")
-                st.success("✅ Analyse terminée")
-                
-                with st.container():
-                    st.markdown(
-                        f'<div class="report-container">{content}</div>',
-                        unsafe_allow_html=True
-                    )
-                
-                if recherche_pro:
-                    st.info("🌐 Recherche web activée | Mode approfondi")
-            else:
-                st.error(f"Erreur API: {response.status_code}")
-
-        except Exception as e:
-            loading_placeholder.empty()
-            st.error(f"Erreur: {str(e)}")
-
-# Bouton d'export PDF
-if st.session_state.last_request['last_report']:
-    st.download_button(
-        label="📄 Exporter en PDF",
-        data=st.session_state.last_request['pdf_bytes'],
-        file_name=f"fiche_prospection_{st.session_state.last_request['entreprise']}.pdf",
-        mime="application/pdf",
-        key="download_pdf",
-        help="Télécharger la fiche au format PDF",
-        use_container_width=True
-    )
-
-# Sidebar
+# Sidebar modifiée
 with st.sidebar:
-    st.info("""
-    **Instructions:**
-    1. Renseignez le nom de l'entreprise
-    2. Sélectionnez le secteur
-    3. Lancez la recherche
+    st.info(f"""
+    **Session:** {st.session_state.current_user}
+    **Version:** VB1,1DS
+    **Dernière connexion:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
     """)
     
     st.markdown("---")
-    st.subheader("Journal d'activité")
-    st.write(f"**Dernière requête (UTC+2):** {st.session_state.last_request['date'] or 'Aucune'}")
-    st.write(f"**Entreprise:** {st.session_state.last_request['entreprise'] or 'Aucune'}")
-    st.write(f"**Mode:** {st.session_state.last_request['mode'] or 'Aucun'}")
-    st.write(f"**Tokens utilisés:** {st.session_state.last_request['tokens'] or '0'}")
+    st.subheader("📋 Historique complet")
     
-    if st.button("🔄 Réinitialiser"):
+    if not st.session_state.history:
+        st.write("Aucune recherche enregistrée")
+    else:
+        search_filter = st.selectbox("Filtrer par:", ["Tous", "PRO", "Standard", "Par utilisateur"])
+        
+        filtered_history = st.session_state.history.copy()
+        if search_filter == "PRO":
+            filtered_history = [h for h in filtered_history if h['mode'] == "PRO"]
+        elif search_filter == "Standard":
+            filtered_history = [h for h in filtered_history if h['mode'] == "Standard"]
+        elif search_filter == "Par utilisateur":
+            filtered_history = [h for h in filtered_history if h['user'] == st.session_state.current_user]
+        
+        for search in reversed(filtered_history[-10:]):  # Affiche les 10 dernières
+            with st.expander(f"{search['entreprise']} - {search['date'].split()[0]}"):
+                st.write(f"**Utilisateur:** {search['user']}")
+                st.write(f"**Secteur:** {search['secteur']}")
+                st.write(f"**Mode:** {search['mode']}")
+                st.write(f"**Tokens utilisés:** {search['tokens']}")
+    
+    if st.button("🔒 Déconnexion"):
         st.session_state.clear()
         st.rerun()
