@@ -55,9 +55,9 @@ Structure :
         compteur = st.empty()
         start_time = time.time()
 
-        for i in range(60):
+        for i in range(30):
             time.sleep(1)
-            progress_bar.progress((i + 1) / 60)
+            progress_bar.progress((i + 1) / 50)
             compteur.markdown(f"🕒 Temps écoulé : {i + 1} sec")
 
         try:
