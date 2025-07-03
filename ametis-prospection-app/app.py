@@ -188,7 +188,7 @@ def authenticate():
 def main_app_interface():
     """Interface principale de l'application après authentification"""
     # Header
-    st.title("🤖 ASSISTANT Prospection Ametis")
+    st.title("😎 ASSISTANT Prospection Ametis")
     st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
     
     # Tableau de bord admin
@@ -234,7 +234,7 @@ def main_app_interface():
         with col1:
             nom_entreprise = st.text_input("Nom de l'entreprise", placeholder="Ex: Société XYZ")
             secteur_cible = st.selectbox("Secteur d'activité", [
-                "Technologie", "Santé", "Finance", 
+                "Technologie", "Santé", "Finance", "Agroalimentaire"
                 "Industrie", "Commerce", "Services"
             ])
         with col2:
