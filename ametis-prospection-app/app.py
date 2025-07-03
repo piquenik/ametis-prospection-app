@@ -16,12 +16,6 @@ import logging
 HISTORY_FILE = "search_history.json"
 MAX_HISTORY_ENTRIES = 100
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-API_TIMEOUT_CONNECT = 10  # Timeout de connexion en secondes
-API_TIMEOUT_READ = 30     # Timeout de lecture en secondes
-
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Chargement des variables d'environnement
 load_dotenv('USER_CREDENTIALS.env')
@@ -57,8 +51,7 @@ def load_history():
         with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        logger.error(f"Erreur historique: {str(e)}")
-        st.error("Erreur lors du chargement de l'historique")
+        st.error(f"Erreur historique: {str(e)}")
         return []
 
 def save_history(history):
@@ -67,95 +60,53 @@ def save_history(history):
         with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
             json.dump(history[-MAX_HISTORY_ENTRIES:], f, ensure_ascii=False)
     except Exception as e:
-        logger.error(f"Erreur sauvegarde: {str(e)}")
-        st.error("Erreur lors de la sauvegarde de l'historique")
+        st.error(f"Erreur sauvegarde: {str(e)}")
 
 def generate_pdf_report(data):
     """Génère un rapport PDF avec police standard"""
     try:
         pdf = FPDF()
         pdf.add_page()
+        
+        # Utilisation de la police standard Arial
         pdf.set_font("Arial", size=12)
         
         pdf.cell(200, 10, txt="Rapport de Prospection Ametis", ln=1, align='C')
-        pdf.cell(200, 10, txt=f"Date: {datetime.now(french_tz).strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
+        pdf.cell(200, 10, txt=f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
         
+        # Nettoyage du texte pour PDF (gestion des caractères spéciaux)
         clean_text = data.get('analyse', '').replace('€', 'EUR').replace('\u20ac', 'EUR')
         pdf.multi_cell(0, 10, txt=clean_text)
         
         return pdf.output(dest='S').encode('latin-1', 'replace')
     except Exception as e:
-        logger.error(f"Erreur PDF: {str(e)}")
-        st.error("Erreur lors de la génération du PDF")
+        st.error(f"Erreur PDF: {str(e)}")
         return None
 
 def call_deepseek_api(prompt: str, reasoner: bool = False) -> str:
-    """Appel robuste à l'API DeepSeek avec gestion des erreurs"""
+    """Appel à l'API DeepSeek avec paramètre reasoner pour R1"""
     headers = {
         "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
     }
     
     payload = {
-        "model": "deepseek-chat" if not pro_mode else "deepseek-reasoner",
+        "model": "deepseek-reasoner" if reasoner else "deepseek-chat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7,
-        "max_tokens": 2000,
-        "top_p": 1.0,
-        "frequency_penalty": 0.0,
-        "presence_penalty": 0.0
+        "max_tokens": 2000
     }
     
     try:
-        logger.info(f"Envoi requête à l'API DeepSeek (mode {'PRO' if pro_mode else 'Standard'})")
-        start_time = time.time()
-        
-        response = requests.post(
-            DEEPSEEK_API_URL,
-            headers=headers,
-            json=payload,
-            timeout=(API_TIMEOUT_CONNECT, API_TIMEOUT_READ)
-        )
-        
-        response_time = time.time() - start_time
-        logger.info(f"Réponse reçue en {response_time:.2f}s - Status: {response.status_code}")
-        
-        if response.status_code == 400:
-            error_data = response.json()
-            error_msg = error_data.get('error', {}).get('message', 'Requête invalide')
-            logger.error(f"Erreur 400: {error_msg}")
-            st.error(f"Erreur de validation : {error_msg}")
-            return None
-        
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
-        
-        response_data = response.json()
-        if not isinstance(response_data.get('choices'), list):
-            logger.error("Format de réponse inattendu")
-            st.error("Erreur: Format de réponse API inattendu")
-            return None
-            
-        return response_data["choices"][0]["message"]["content"]
-        
-    except requests.exceptions.Timeout:
-        logger.error("Timeout lors de l'appel API")
-        st.error("Délai d'attente dépassé - Le serveur n'a pas répondu")
-        st.info("Veuillez réessayer ou vérifier votre connexion Internet")
-        return None
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Erreur réseau: {str(e)}")
-        st.error("Erreur de connexion avec l'API DeepSeek")
-        return None
-        
+        return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        logger.error(f"Erreur inattendue: {str(e)}")
-        st.error("Une erreur inattendue est survenue")
+        st.error(f"Erreur API: {str(e)}")
         return None
 
 # ----------------------------
-# PROMPTS METIER (inchangés)
+# PROMPTS METIER
 # ----------------------------
 
 def generate_standard_prompt(entreprise, secteur, localisation):
@@ -189,7 +140,7 @@ def generate_pro_prompt(entreprise, secteur, localisation):
 Format Markdown strict avec emojis pour hiérarchiser l'information."""
 
 # ----------------------------
-# INTERFACE UTILISATEUR (inchangée)
+# INTERFACE UTILISATEUR
 # ----------------------------
 
 def authenticate():
@@ -241,6 +192,7 @@ def main_app_interface():
     st.title("🤖 ASSISTANT Prospection Ametis")
     st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}**")
     
+    # Formulaire de recherche
     with st.form("search_form"):
         st.subheader("🔍 Nouvelle recherche")
         
@@ -252,38 +204,46 @@ def main_app_interface():
             ])
         with col2:
             localisation = st.text_input("Localisation*", placeholder="Ville ou région")
-            recherche_pro = st.checkbox("Mode PRO (analyse approfondie)")
+            reasoner_mode = st.checkbox("Mode R1 (raisonnement avancé)")
         
         submitted = st.form_submit_button("Lancer la recherche")
         st.caption("*Champs obligatoires - Les données sont estimées si non publiques")
     
+    # Traitement de la recherche
     if submitted:
         if not nom_entreprise or not localisation:
             st.warning("Veuillez remplir tous les champs obligatoires")
         else:
             with st.spinner("🔍 Analyse en cours avec DeepSeek..."):
                 try:
-                    prompt = generate_pro_prompt(nom_entreprise, secteur_cible, localisation) if recherche_pro \
-                             else generate_standard_prompt(nom_entreprise, secteur_cible, localisation)
+                    # Génération du prompt
+                    prompt = generate_pro_prompt(nom_entreprise, secteur_cible, localisation)
                     
-                    api_response = call_deepseek_api(prompt, recherche_pro)
+                    # Appel API avec paramètre reasoner
+                    start_time = time.time()
+                    api_response = call_deepseek_api(prompt, reasoner_mode)
                     
                     if api_response:
-                        st.success("Analyse complétée avec succès")
+                        processing_time = time.time() - start_time
+                        
+                        # Affichage des résultats
+                        st.success(f"Analyse complétée en {processing_time:.2f}s")
                         st.subheader(f"📊 Résultats pour {nom_entreprise}")
                         display_results_container(api_response)
                         
+                        # Mise à jour historique
                         new_entry = {
                             'user': st.session_state.current_user,
                             'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             'entreprise': nom_entreprise,
-                            'mode': "PRO" if recherche_pro else "Standard",
+                            'mode': "R1" if reasoner_mode else "Standard",
                             'secteur': secteur_cible,
-                            'tokens': len(prompt.split())
+                            'tokens': len(prompt.split())  # Estimation
                         }
                         st.session_state.history.append(new_entry)
                         save_history(st.session_state.history)
                         
+                        # Export PDF
                         pdf_report = generate_pdf_report({
                             'entreprise': nom_entreprise,
                             'analyse': api_response
@@ -298,8 +258,7 @@ def main_app_interface():
                             )
                     
                 except Exception as e:
-                    logger.error(f"Erreur traitement: {str(e)}")
-                    st.error("Une erreur est survenue lors du traitement")
+                    st.error(f"Erreur lors de l'analyse: {str(e)}")
 
 def app_sidebar():
     """Configure la sidebar"""
@@ -329,6 +288,7 @@ def app_sidebar():
 
 def main():
     """Point d'entrée principal"""
+    # Configuration de la page
     st.set_page_config(
         page_title="Assistant Prospection Ametis",
         layout="centered",
@@ -340,9 +300,14 @@ def main():
         }
     )
     
+    # Flux d'exécution
     authenticate()
     main_app_interface()
     app_sidebar()
+
+# ----------------------------
+# EXECUTION
+# ----------------------------
 
 if __name__ == "__main__":
     main()
