@@ -323,38 +323,57 @@ if st.session_state.last_request['last_report']:
         use_container_width=True
     )
 
+    # Champ de question de suivi
+    st.markdown("---")
+    st.subheader("🔁 Question de suivi (mode Raisonnement avec sources)")
+    question_suivi = st.text_input("Posez une question de suivi sur cette entreprise :")
+
+    if question_suivi:
+        with st.spinner("Analyse complémentaire en cours..."):
+            suivi_payload = {
+                "model": "deepseek-reasoner",
+                "messages": [
+                    {"role": "system", "content": "Expert en analyse B2B"},
+                    {"role": "user", "content": st.session_state.last_request['last_report']},
+                    {"role": "user", "content": question_suivi}
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "web_search": True
+            }
+
+            try:
+                suivi_response = requests.post(
+                    "https://api.deepseek.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+                    json=suivi_payload,
+                    timeout=120
+                )
+                if suivi_response.status_code == 200:
+                    suivi_content = suivi_response.json()["choices"][0]["message"]["content"]
+                    st.markdown("---")
+                    st.subheader("🧠 Réponse à la question de suivi")
+                    st.markdown(f'<div class="report-container">{suivi_content}</div>', unsafe_allow_html=True)
+                else:
+                    st.error(f"Erreur API Deepseek: {suivi_response.status_code}")
+            except Exception as err:
+                st.error(f"Erreur lors de la question de suivi: {err}")
+
+    # Bouton Nouvelle recherche
+    if st.button("🔁 Nouvelle recherche"):
+        st.session_state.last_request = {
+            'date': None,
+            'entreprise': None,
+            'mode': None,
+            'tokens': None,
+            'last_report': None,
+            'pdf_bytes': None
+        }
+        st.rerun()
+
 # Sidebar
 with st.sidebar:
-    st.info("""
-    **Instructions:**
-    1. Renseignez le nom de l'entreprise
-    2. Sélectionnez le secteur
-    3. Lancez la recherche
-    """)
-
-    st.markdown("---")
-    st.subheader("🕒 Historique des 10 dernières requêtes")
-
-    if st.session_state.history:
-        for i, req in enumerate(reversed(st.session_state.history)):
-            with st.expander(f"{req['entreprise']} ({req['mode']}) - {req['date']}", expanded=False):
-                if st.button("🔁 Recharger cette fiche", key=f"reload_{i}"):
-                    st.session_state.last_request = {
-                        'date': req['date'],
-                        'entreprise': req['entreprise'],
-                        'mode': req['mode'],
-                        'tokens': req['tokens'],
-                        'last_report': req['content'],
-                        'pdf_bytes': req['pdf_bytes']
-                    }
-                    st.rerun()
-    else:
-        st.write("Aucune requête enregistrée.")
-
-    st.markdown("---")
-    if st.button("🔄 Réinitialiser session"):
-        st.session_state.clear()
-        st.rerun()
+    ...
 
 # Zone admin
 if st.session_state.role == "admin":
