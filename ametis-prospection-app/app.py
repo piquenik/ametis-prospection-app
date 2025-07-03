@@ -83,25 +83,71 @@ def generate_pdf_report(data):
         return None
 
 def call_deepseek_api(prompt: str, pro_mode: bool = False) -> str:
-    """Appel réel à l'API DeepSeek"""
+    """Appel amélioré à l'API DeepSeek avec gestion des erreurs détaillée"""
     headers = {
         "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
     
     payload = {
         "model": "deepseek-chat" if not pro_mode else "deepseek-pro",
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{
+            "role": "user",
+            "content": prompt
+        }],
         "temperature": 0.7,
-        "max_tokens": 2000
+        "max_tokens": 2000,
+        "top_p": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0
     }
     
     try:
-        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(
+            DEEPSEEK_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        # Analyse détaillée des erreurs
+        if response.status_code == 400:
+            error_detail = response.json().get('error', {}).get('message', 'Bad Request')
+            if "model" in error_detail.lower():
+                raise ValueError(f"Modèle non disponible: {payload['model']}")
+            else:
+                raise ValueError(f"Requête invalide: {error_detail}")
+        
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        st.error(f"Erreur API: {str(e)}")
+        
+        # Vérification de la structure de réponse
+        response_data = response.json()
+        if not isinstance(response_data.get('choices'), list) or len(response_data['choices']) == 0:
+            raise ValueError("Format de réponse API invalide")
+            
+        return response_data["choices"][0]["message"]["content"]
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Erreur API: "
+        if hasattr(e, 'response') and e.response is not None:
+            if e.response.status_code == 401:
+                error_msg += "Clé API non autorisée"
+            elif e.response.status_code == 429:
+                error_msg += "Quota API dépassé"
+            else:
+                error_msg += f"HTTP {e.response.status_code}"
+                
+            try:
+                error_detail = e.response.json().get('error', {}).get('message', '')
+                if error_detail:
+                    error_msg += f" - {error_detail}"
+            except:
+                pass
+        else:
+            error_msg += str(e)
+            
+        st.error(error_msg)
         return None
 
 # ----------------------------
