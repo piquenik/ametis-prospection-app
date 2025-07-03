@@ -110,8 +110,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.title("🤣 ASSISTANT Prospection Ametis")
-st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}** ({st.session_state.role})")
+st.title(" 🔍 ASSISTANT Prospection Ametis")
+st.markdown(f"-VBeta 1,1DeepSeek | Connecté en tant que: **{st.session_state.current_user}** ({st.session_state.role})")
 
 # Paramètres
 with st.expander("⚙️ Paramètres avancés", expanded=False):
