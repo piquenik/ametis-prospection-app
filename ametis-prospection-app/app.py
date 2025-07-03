@@ -40,7 +40,7 @@ if 'authenticated' not in st.session_state:
     st.session_state.role = None
 
 if not st.session_state.authenticated:
-    st.title("🔐 Connexion Utilisateur")
+    st.title("🔐 Connexion Utilisateur Ametis")
     login = st.text_input("Identifiant")
     password = st.text_input("Mot de passe", type="password")
     if st.button("Se connecter"):
