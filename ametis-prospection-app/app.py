@@ -20,9 +20,20 @@ if password != CORRECT_PASSWORD:
 nom_entreprise = st.text_input("Nom de l'entreprise")
 secteur_cible = st.selectbox("Secteur", ["Agroalimentaire", "Pharma / Cosmétique", "Logistique / Emballage", "Electronique / Technique", "Autre industrie"])
 
-# Bouton pour générer
-if st.button("Générer la fiche") and nom_entreprise:
+col1, col2 = st.columns([2, 2])
+with col1:
+    lancer_recherche = st.button("Générer la fiche")
+with col2:
+    recherche_approfondie = st.button("Recherche approfondie")
+
+if lancer_recherche or recherche_approfondie:
     endpoint = "https://api.deepseek.com/v1/chat/completions"
+    model = "deepseek-chat"
+
+    if recherche_approfondie:
+        model = "deepseek-reasoner"
+        st.markdown("ℹ️ La recherche approfondie peut prendre plus de temps. Source : Sales Navigator ou Lusha.")
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"
@@ -37,10 +48,11 @@ Structure :
 3. Chiffres clés s'ils sont publics (CA, effectifs, usines...)
 4. Signaux d'actualité ou transformation industrielle
 5. Recherche active de contacts : responsable qualité, production, technique, achats, marketing. S'ils ne sont pas trouvables, indique clairement : "Contact non trouvé, essayer de faire une recherche approfondie."
+6. Email de prospection combiné (convaincant, B2B, français professionnel)
     """
 
     data = {
-        "model": "deepseek-chat",
+        "model": model,
         "messages": [
             {"role": "system", "content": "Tu es un assistant IA expert en prospection B2B."},
             {"role": "user", "content": prompt}
@@ -49,7 +61,7 @@ Structure :
         "max_tokens": 900
     }
 
-    with st.spinner("🧠 Réflexion en cours, via : https://api.deepseek.com/v1/chat/completions"):
+    with st.spinner(f"🧠 Réflexion en cours, via : {endpoint}"):
         progress_bar = st.progress(0)
         compteur = st.empty()
         start_time = time.time()
