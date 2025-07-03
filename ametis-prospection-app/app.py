@@ -60,7 +60,7 @@ with st.expander("⚙️ Paramètres avancés", expanded=False):
 
 # Formulaire de recherche
 with st.form("recherche_form"):
-    nom_entreprise = st.text_input("Nom de l'entreprise* ( preciser nom de l'entreprise et ville ou departement idealement")
+    nom_entreprise = st.text_input("Nom de l'entreprise* ( preciser nom de l'entreprise + ville + departement (idealement)")
     secteur_cible = st.selectbox(
         "Secteur d'activité*",
         ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
