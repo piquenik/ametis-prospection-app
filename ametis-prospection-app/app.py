@@ -373,7 +373,36 @@ if st.session_state.last_request['last_report']:
 
 # Sidebar
 with st.sidebar:
-    ...
+    st.info("""
+    **Instructions:**
+    1. Renseignez le nom de l'entreprise
+    2. Sélectionnez le secteur
+    3. Lancez la recherche
+    """)
+
+    st.markdown("---")
+    st.subheader("🕒 Historique des 10 dernières requêtes")
+
+    if st.session_state.history:
+        for i, req in enumerate(reversed(st.session_state.history)):
+            with st.expander(f"{req['entreprise']} ({req['mode']}) - {req['date']}", expanded=False):
+                if st.button("🔁 Recharger cette fiche", key=f"reload_{i}"):
+                    st.session_state.last_request = {
+                        'date': req['date'],
+                        'entreprise': req['entreprise'],
+                        'mode': req['mode'],
+                        'tokens': req['tokens'],
+                        'last_report': req['content'],
+                        'pdf_bytes': req['pdf_bytes']
+                    }
+                    st.rerun()
+    else:
+        st.write("Aucune requête enregistrée.")
+
+    st.markdown("---")
+    if st.button("🔄 Réinitialiser session"):
+        st.session_state.clear()
+        st.rerun()
 
 # Zone admin
 if st.session_state.role == "admin":
