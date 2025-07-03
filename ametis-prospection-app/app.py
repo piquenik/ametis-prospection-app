@@ -41,7 +41,7 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.title("🔐 Connexion Utilisateur Ametis")
-    login = st.text_input("Identifiant exemple 'Nicolas Piquet = NPI)")
+    login = st.text_input("Identifiant exemple 'Nicolas Piquet = (NPI)")
     password = st.text_input("Mot de passe", type="password")
     if st.button("Se connecter"):
         for user in users:
