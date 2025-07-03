@@ -17,7 +17,7 @@ st.set_page_config(
     }
 )
 
-# Style CSS optimisé
+# Style CSS avec animation
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
@@ -36,6 +36,34 @@ st.markdown("""
         margin-top: 1rem;
         word-wrap: break-word;
     }
+    
+    /* Animation de chargement */
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .loading-container {
+        text-align: center;
+        margin: 2rem 0;
+        padding: 2rem;
+        border-radius: 10px;
+        background-color: #f0f2f6;
+    }
+    
+    .loading-logo {
+        font-size: 2.5rem;
+        animation: pulse 2s infinite;
+        margin-bottom: 1rem;
+    }
+    
+    .loading-text {
+        color: #4b8bff;
+        font-weight: bold;
+        margin-top: 1rem;
+    }
+    
     @media (max-width: 640px) {
         .main-container {padding: 1rem;}
         .report-container {padding: 1rem;}
@@ -147,8 +175,23 @@ def create_pdf(entreprise, secteur, contenu):
     
     return pdf.output(dest='S').encode('latin-1')
 
-# Traitement de la recherche
+# Traitement de la recherche avec animation
 if recherche_standard or recherche_pro:
+    # Afficher l'animation de chargement
+    loading_placeholder = st.empty()
+    loading_placeholder.markdown("""
+    <div class="loading-container">
+        <div class="loading-logo">🔍</div>
+        <h3 class="loading-text">Ametis Prospect+</h3>
+        <p>Notre équipe analyse les données...</p>
+        <div style="font-size: 1.5rem;">
+            <span style="animation: pulse 2s infinite;">🤖</span>
+            <span style="animation: pulse 2s infinite 0.5s;">📊</span>
+            <span style="animation: pulse 2s infinite 1s;">💼</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     with st.spinner("Analyse en cours..."):
         payload = {
             "model": "deepseek-reasoner" if recherche_pro else "deepseek-chat",
@@ -168,6 +211,9 @@ if recherche_standard or recherche_pro:
                 json=payload,
                 timeout=120 if recherche_pro else 60
             )
+
+            # Effacer l'animation
+            loading_placeholder.empty()
 
             if response.status_code == 200:
                 result = response.json()
@@ -204,9 +250,10 @@ if recherche_standard or recherche_pro:
                 st.error(f"Erreur API: {response.status_code}")
 
         except Exception as e:
+            loading_placeholder.empty()
             st.error(f"Erreur: {str(e)}")
 
-# Bouton d'export PDF (toujours visible si un rapport existe)
+# Bouton d'export PDF
 if st.session_state.last_request['last_report']:
     st.download_button(
         label="📄 Exporter en PDF",
