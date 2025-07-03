@@ -98,7 +98,7 @@ def call_deepseek_api(prompt: str, reasoner: bool = False) -> str:
     }
     
     try:
-        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
