@@ -23,10 +23,12 @@ st.set_page_config(
 USER_FILE = "users.json"
 LOG_FILE = "global_log.json"
 
-# Chargement utilisateurs
 @st.cache_data
 def load_users():
-    with open(USER_FILE, "r") as f:
+    if not os.path.exists(USER_FILE):
+        st.error(f"Fichier {USER_FILE} introuvable. Veuillez le créer à la racine de l'application.")
+        st.stop()
+    with open(USER_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 users = load_users()
