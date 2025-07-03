@@ -89,7 +89,7 @@ Règles strictes :
             {"role": "system", "content": "Tu es un assistant IA expert en prospection B2B. Tu respectes scrupuleusement les formats demandés."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.3,  # Réduit pour plus de précision
+        "temperature": 0.6,  # Réduit pour plus de précision
         "max_tokens": 1200   # Augmenté pour la structure détaillée
     }
 
