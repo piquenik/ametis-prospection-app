@@ -2,13 +2,13 @@ import streamlit as st
 import requests
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Configuration de la page
 st.set_page_config(
     page_title="Assistant Prospection Ametis",
     layout="centered",
-    page_icon="🤖"
+    page_icon="📊"
 )
 
 # Style CSS personnalisé
@@ -125,9 +125,10 @@ if recherche_standard or recherche_pro:
                 content = result["choices"][0]["message"]["content"]
                 tokens_used = result["usage"]["total_tokens"]
                 
-                # Mise à jour du journal
+                # Mise à jour du journal avec heure française (UTC+2)
+                french_tz = timezone(timedelta(hours=2))
                 st.session_state.last_request = {
-                    'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
                     'entreprise': nom_entreprise,
                     'mode': "PRO" if recherche_pro else "Standard",
                     'tokens': tokens_used
@@ -164,7 +165,7 @@ with st.sidebar:
     # Journal d'activité
     st.markdown("---")
     st.subheader("Journal d'activité")
-    st.write(f"**Dernière requête:** {st.session_state.last_request['date'] or 'Aucune'}")
+    st.write(f"**Dernière requête (UTC+2):** {st.session_state.last_request['date'] or 'Aucune'}")
     st.write(f"**Entreprise:** {st.session_state.last_request['entreprise'] or 'Aucune'}")
     st.write(f"**Mode:** {st.session_state.last_request['mode'] or 'Aucun'}")
     st.write(f"**Tokens utilisés:** {st.session_state.last_request['tokens'] or '0'}")
