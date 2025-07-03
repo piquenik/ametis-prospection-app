@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import os
 import time
+from datetime import datetime
 
 # Configuration de la page
 st.set_page_config(
@@ -60,7 +61,7 @@ with st.expander("⚙️ Paramètres avancés", expanded=False):
 
 # Formulaire de recherche
 with st.form("recherche_form"):
-    nom_entreprise = st.text_input("Nom de l'entreprise* ( preciser nom de l'entreprise + ville + departement (idéalement)")
+    nom_entreprise = st.text_input("Nom de l'entreprise*")
     secteur_cible = st.selectbox(
         "Secteur d'activité*",
         ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
@@ -88,6 +89,15 @@ def generate_prompt(entreprise, secteur):
 
 Format Markdown strict."""
 
+# Journal d'activité
+if 'last_request' not in st.session_state:
+    st.session_state.last_request = {
+        'date': None,
+        'entreprise': None,
+        'mode': None,
+        'tokens': None
+    }
+
 # Traitement de la recherche
 if recherche_standard or recherche_pro:
     with st.spinner("Analyse en cours..."):
@@ -113,8 +123,17 @@ if recherche_standard or recherche_pro:
             if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
+                tokens_used = result["usage"]["total_tokens"]
                 
-                # Affichage du résultat dans un conteneur adaptatif
+                # Mise à jour du journal
+                st.session_state.last_request = {
+                    'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'entreprise': nom_entreprise,
+                    'mode': "PRO" if recherche_pro else "Standard",
+                    'tokens': tokens_used
+                }
+                
+                # Affichage du résultat
                 st.markdown("---")
                 st.success("✅ Analyse terminée")
                 
@@ -132,13 +151,24 @@ if recherche_standard or recherche_pro:
         except Exception as e:
             st.error(f"Erreur: {str(e)}")
 
-# Sidebar
+# Sidebar avec instructions ET journal
 with st.sidebar:
+    # Instructions (carré bleu)
     st.info("""
     **Instructions:**
     1. Renseignez le nom de l'entreprise
     2. Sélectionnez le secteur
     3. Lancez la recherche
     """)
+    
+    # Journal d'activité
+    st.markdown("---")
+    st.subheader("Journal d'activité")
+    st.write(f"**Dernière requête:** {st.session_state.last_request['date'] or 'Aucune'}")
+    st.write(f"**Entreprise:** {st.session_state.last_request['entreprise'] or 'Aucune'}")
+    st.write(f"**Mode:** {st.session_state.last_request['mode'] or 'Aucun'}")
+    st.write(f"**Tokens utilisés:** {st.session_state.last_request['tokens'] or '0'}")
+    
     if st.button("🔄 Réinitialiser"):
+        st.session_state.clear()
         st.rerun()
