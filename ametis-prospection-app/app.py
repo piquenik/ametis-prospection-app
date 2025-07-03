@@ -9,7 +9,7 @@ from fpdf import FPDF
 st.set_page_config(
     page_title="Assistant Prospection Ametis VBeta V1,1DS",
     layout="centered",
-    page_icon="📊",
+    page_icon="🤖",
     menu_items={
         'Get Help': None,
         'Report a bug': None,
