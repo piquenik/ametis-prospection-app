@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import os
 import time
+import json
+import csv
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
 
@@ -16,6 +18,40 @@ st.set_page_config(
         'About': None
     }
 )
+
+# Fichiers de config
+USER_FILE = "users.json"
+LOG_FILE = "global_log.json"
+
+# Chargement utilisateurs
+@st.cache_data
+def load_users():
+    with open(USER_FILE, "r") as f:
+        return json.load(f)
+
+users = load_users()
+
+# Authentification utilisateur
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.current_user = None
+    st.session_state.role = None
+
+if not st.session_state.authenticated:
+    st.title("🔐 Connexion Utilisateur")
+    login = st.text_input("Identifiant")
+    password = st.text_input("Mot de passe", type="password")
+    if st.button("Se connecter"):
+        for user in users:
+            if user["username"] == login and user["password"] == password:
+                st.session_state.authenticated = True
+                st.session_state.current_user = login
+                st.session_state.role = user.get("role", "user")
+                st.success("Connexion réussie")
+                st.rerun()
+        else:
+            st.error("Identifiant ou mot de passe incorrect")
+    st.stop()
 
 # Style CSS avec animation
 st.markdown("""
@@ -37,6 +73,7 @@ st.markdown("""
         word-wrap: break-word;
     }
 
+    /* Animation de chargement */
     @keyframes pulse {
         0% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.7; }
@@ -70,20 +107,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Authentification
-def check_password():
-    password = st.text_input("🔐 Mot de passe d'accès :", type="password")
-    if password != os.getenv("APP_PASSWORD", "Ametis2025"):
-        st.error("Accès non autorisé")
-        st.stop()
-    return True
-
-if not check_password():
-    st.stop()
-
 # Header
 st.title("🤣 ASSISTANT Prospection Ametis")
-st.markdown("-VB1,1DS")
+st.markdown(f"-VB1,1DS | Connecté en tant que: **{st.session_state.current_user}** ({st.session_state.role})")
 
 # Paramètres
 with st.expander("⚙️ Paramètres avancés", expanded=False):
@@ -124,9 +150,6 @@ def generate_prompt(entreprise, secteur):
 Format Markdown strict."""
 
 # Journal d'activité
-if 'history' not in st.session_state:
-    st.session_state.history = []
-
 if 'last_request' not in st.session_state:
     st.session_state.last_request = {
         'date': None,
@@ -137,12 +160,16 @@ if 'last_request' not in st.session_state:
         'pdf_bytes': None
     }
 
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
 # Fonction de création du PDF
 def create_pdf(entreprise, secteur, contenu):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
+    # En-tête
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, txt=f"Fiche Prospection: {entreprise}", ln=1, align='C')
     pdf.set_font("Arial", 'I', 12)
@@ -209,6 +236,7 @@ if recherche_standard or recherche_pro:
                 timeout=120 if recherche_pro else 60
             )
 
+            # Effacer l'animation
             loading_placeholder.empty()
 
             if response.status_code == 200:
@@ -216,7 +244,10 @@ if recherche_standard or recherche_pro:
                 content = result["choices"][0]["message"]["content"]
                 tokens_used = result["usage"]["total_tokens"]
 
+                # Génération du PDF
                 pdf_bytes = create_pdf(nom_entreprise, secteur_cible, content)
+
+                # Mise à jour du journal
                 french_tz = timezone(timedelta(hours=2))
                 st.session_state.last_request = {
                     'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
@@ -235,8 +266,31 @@ if recherche_standard or recherche_pro:
                     'content': content,
                     'pdf_bytes': pdf_bytes
                 })
+
                 st.session_state.history = st.session_state.history[-10:]
 
+                # Log global admin
+                try:
+                    log_entry = {
+                        "datetime": st.session_state.last_request['date'],
+                        "user": st.session_state.current_user,
+                        "entreprise": nom_entreprise,
+                        "secteur": secteur_cible,
+                        "mode": st.session_state.last_request['mode'],
+                        "tokens": tokens_used
+                    }
+                    if os.path.exists(LOG_FILE):
+                        with open(LOG_FILE, "r", encoding="utf-8") as f:
+                            logs = json.load(f)
+                    else:
+                        logs = []
+                    logs.append(log_entry)
+                    with open(LOG_FILE, "w", encoding="utf-8") as f:
+                        json.dump(logs[-100:], f, indent=2)
+                except Exception as e:
+                    st.warning(f"Erreur journalisation: {e}")
+
+                # Affichage du résultat
                 st.markdown("---")
                 st.success("✅ Analyse terminée")
 
@@ -255,6 +309,7 @@ if recherche_standard or recherche_pro:
             loading_placeholder.empty()
             st.error(f"Erreur: {str(e)}")
 
+# Bouton d'export PDF
 if st.session_state.last_request['last_report']:
     st.download_button(
         label="📄 Exporter en PDF",
@@ -298,3 +353,24 @@ with st.sidebar:
     if st.button("🔄 Réinitialiser session"):
         st.session_state.clear()
         st.rerun()
+
+# Zone admin
+if st.session_state.role == "admin":
+    st.markdown("---")
+    st.subheader("🔒 Journal des Recherches (admin)")
+    try:
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, "r") as f:
+                log_data = json.load(f)
+            if log_data:
+                st.dataframe(log_data[::-1])
+                csv_data = "datetime,user,entreprise,secteur,mode,tokens\n" + "\n".join(
+                    [f'{r["datetime"]},{r["user"]},{r["entreprise"]},{r["secteur"]},{r["mode"]},{r["tokens"]}' for r in log_data]
+                )
+                st.download_button("📃 Télécharger CSV", data=csv_data, file_name="journal_recherches.csv", mime="text/csv")
+            else:
+                st.info("Aucune donnée enregistrée.")
+        else:
+            st.info("Journal non encore créé.")
+    except Exception as e:
+        st.error(f"Erreur chargement journal: {e}")
