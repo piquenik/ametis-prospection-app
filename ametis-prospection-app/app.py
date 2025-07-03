@@ -173,11 +173,26 @@ def make_api_request(payload, timeout=60):
     try:
         response = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
+            headers={
+                "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
+                "Content-Type": "application/json"
+            },
             json=payload,
             timeout=timeout
         )
+        
+        # Debug: afficher le code de statut
+        if response.status_code != 200:
+            st.error(f"Erreur API - Code: {response.status_code}")
+            st.error(f"Réponse: {response.text}")
+            
         return response
+    except requests.exceptions.Timeout:
+        st.error("Timeout - La requête a pris trop de temps")
+        return None
+    except requests.exceptions.ConnectionError:
+        st.error("Erreur de connexion à l'API DeepSeek")
+        return None
     except Exception as e:
         st.error(f"Erreur lors de la requête API: {e}")
         return None
@@ -304,69 +319,86 @@ def execute_additional_analysis(prompt, analysis_type, use_pro_model=True):
         st.error("Aucune recherche précédente trouvée. Effectuez d'abord une recherche standard.")
         return
     
-    loading_placeholder = st.empty()
-    loading_placeholder.markdown(f"""
-    <div class="loading-container">
-        <div class="loading-logo">🔍</div>
-        <h3 class="loading-text">Analyse {analysis_type}</h3>
-        <p>Traitement en cours...</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Utilisation d'un container dans la colonne principale pour afficher les résultats
+    with col_main:
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(f"""
+        <div class="loading-container">
+            <div class="loading-logo">🔍</div>
+            <h3 class="loading-text">Analyse {analysis_type}</h3>
+            <p>Traitement en cours...</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    payload = {
-        "model": "deepseek-reasoner" if use_pro_model else "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": "Expert en analyse B2B et prospection commerciale"},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "web_search": True
-    }
+        payload = {
+            "model": "deepseek-reasoner" if use_pro_model else "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "Expert en analyse B2B et prospection commerciale"},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,  # Valeur par défaut si temperature n'est pas définie
+            "max_tokens": 1500,  # Valeur par défaut si max_tokens n'est pas définie
+            "web_search": True
+        }
 
-    try:
-        response = make_api_request(payload, timeout=120)
-        loading_placeholder.empty()
-        
-        if response and response.status_code == 200:
-            result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            tokens_used = result["usage"]["total_tokens"]
+        try:
+            response = make_api_request(payload, timeout=120)
+            loading_placeholder.empty()
             
-            # Affichage du résultat
-            st.markdown("---")
-            st.success(f"✅ Analyse {analysis_type} terminée")
+            if response and response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                tokens_used = result["usage"]["total_tokens"]
+                
+                # Affichage du résultat dans la colonne principale
+                st.markdown("---")
+                st.success(f"✅ Analyse {analysis_type} terminée")
+                
+                with st.container():
+                    st.markdown(
+                        f'<div class="report-container">{content}</div>',
+                        unsafe_allow_html=True
+                    )
+                
+                # Génération du PDF pour l'analyse supplémentaire
+                try:
+                    pdf_bytes = create_pdf(
+                        st.session_state.last_request['entreprise'], 
+                        "Analyse", 
+                        content, 
+                        analysis_type
+                    )
+                    
+                    st.download_button(
+                        label=f"📄 Exporter {analysis_type} en PDF",
+                        data=pdf_bytes,
+                        file_name=f"{analysis_type}_{st.session_state.last_request['entreprise']}.pdf",
+                        mime="application/pdf",
+                        key=f"pdf_{analysis_type}_{int(time.time())}",
+                        use_container_width=True
+                    )
+                except Exception as pdf_error:
+                    st.warning(f"Erreur génération PDF: {pdf_error}")
+                
+                return content
+            else:
+                error_msg = f"Erreur API: {response.status_code}"
+                if response:
+                    try:
+                        error_detail = response.json()
+                        error_msg += f" - {error_detail.get('error', {}).get('message', 'Erreur inconnue')}"
+                    except:
+                        error_msg += f" - {response.text}"
+                st.error(error_msg)
+                
+        except Exception as e:
+            loading_placeholder.empty()
+            st.error(f"Erreur lors de l'analyse {analysis_type}: {str(e)}")
+            st.error(f"Détails: {type(e).__name__}")
             
-            with st.container():
-                st.markdown(
-                    f'<div class="report-container">{content}</div>',
-                    unsafe_allow_html=True
-                )
-            
-            # Génération du PDF pour l'analyse supplémentaire
-            pdf_bytes = create_pdf(
-                st.session_state.last_request['entreprise'], 
-                secteur_cible, 
-                content, 
-                analysis_type
-            )
-            
-            st.download_button(
-                label=f"📄 Exporter {analysis_type} en PDF",
-                data=pdf_bytes,
-                file_name=f"{analysis_type}_{st.session_state.last_request['entreprise']}.pdf",
-                mime="application/pdf",
-                key=f"pdf_{analysis_type}_{datetime.now().isoformat()}",
-                use_container_width=True
-            )
-            
-            return content
-        else:
-            st.error(f"Erreur API: {response.status_code if response else 'Pas de réponse'}")
-            
-    except Exception as e:
-        loading_placeholder.empty()
-        st.error(f"Erreur lors de l'analyse {analysis_type}: {str(e)}")
+            # Debug info
+            st.write("Debug - Payload envoyé:")
+            st.json(payload)
 
 # Traitement de la recherche avec animation
 with col_main:
@@ -535,8 +567,8 @@ with col_features:
         """, unsafe_allow_html=True)
         
         if st.button("🏢 Identifier les Concurrents (50km)", key="competitors", use_container_width=True):
-            prompt = generate_competitors_prompt(entreprise_actuelle, secteur_cible)
-            execute_additional_analysis(prompt, "Concurrents")
+            prompt = generate_competitors_prompt(entreprise_actuelle, "Analyse concurrentielle")
+            execute_additional_analysis(prompt, "Concurrents", use_pro_model=False)
         
         # Section Prospection
         st.markdown("""
@@ -546,8 +578,8 @@ with col_features:
         """, unsafe_allow_html=True)
         
         if st.button("🎯 Suggérer des Prospects (50km)", key="prospects", use_container_width=True):
-            prompt = generate_prospects_prompt(entreprise_actuelle, secteur_cible)
-            execute_additional_analysis(prompt, "Prospects")
+            prompt = generate_prospects_prompt(entreprise_actuelle, "Prospection")
+            execute_additional_analysis(prompt, "Prospects", use_pro_model=False)
         
         # Section Analyse Marché
         st.markdown("""
@@ -557,8 +589,8 @@ with col_features:
         """, unsafe_allow_html=True)
         
         if st.button("📈 Analyser le Marché Local", key="market", use_container_width=True):
-            prompt = generate_market_analysis_prompt(entreprise_actuelle, secteur_cible)
-            execute_additional_analysis(prompt, "Marché")
+            prompt = generate_market_analysis_prompt(entreprise_actuelle, "Marché")
+            execute_additional_analysis(prompt, "Marché", use_pro_model=False)
         
         # Section Contacts
         st.markdown("""
@@ -568,8 +600,8 @@ with col_features:
         """, unsafe_allow_html=True)
         
         if st.button("👥 Rechercher des Contacts Clés", key="contacts", use_container_width=True):
-            prompt = generate_contacts_prompt(entreprise_actuelle, secteur_cible)
-            execute_additional_analysis(prompt, "Contacts")
+            prompt = generate_contacts_prompt(entreprise_actuelle, "Contacts")
+            execute_additional_analysis(prompt, "Contacts", use_pro_model=False)
         
         # Section Analyse Personnalisée
         st.markdown("""
@@ -580,13 +612,12 @@ with col_features:
         
         custom_prompt = st.text_area("Votre demande personnalisée:", key="custom_analysis", height=100)
         if st.button("🚀 Analyser", key="custom", use_container_width=True) and custom_prompt:
-            full_prompt = f"""Analyse personnalisée pour {entreprise_actuelle} (secteur: {secteur_cible}):
+            full_prompt = f"""Analyse personnalisée pour {entreprise_actuelle}:
 
 {custom_prompt}
 
-Contexte entreprise disponible:
-{st.session_state.last_request['last_report'][:500]}..."""
-            execute_additional_analysis(full_prompt, "Personnalisée")
+Basé sur les informations disponibles sur cette entreprise, fournis une analyse détaillée et actionnable."""
+            execute_additional_analysis(full_prompt, "Personnalisée", use_pro_model=False)
     
     else:
         st.info("🔍 Effectuez d'abord une recherche pour débloquer les fonctionnalités avancées")
