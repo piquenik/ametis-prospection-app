@@ -328,7 +328,7 @@ if st.session_state.last_request['last_report']:
     st.subheader("🔁 Question de suivi (mode Raisonnement avec sources)")
     question_suivi = st.text_input("Posez une question de suivi sur cette entreprise :")
 
-        # Bouton suggestion tournée
+    # Bouton suggestion tournée
     if st.button("🗺️ Proposer une tournée de prospection (50 km)", key="suggest_tournee"):
         st.session_state.suivi_q = (
             "Établis une tournée de prospection dans un rayon de 50 km autour de l'adresse de l'entreprise mentionnée. "
@@ -338,15 +338,16 @@ if st.session_state.last_request['last_report']:
         )
         st.rerun()
 
-    if suivi_question or 'suivi_q' in st.session_state:
-        question = suivi_question or st.session_state.get('suivi_q', '')
+    # Exécution de la question de suivi
+    suivi_question = question_suivi or st.session_state.get("suivi_q")
+    if suivi_question:
         with st.spinner("Raisonnement en cours..."):
             payload = {
                 "model": "deepseek-reasoner",
                 "messages": [
                     {"role": "system", "content": "Expert en analyse B2B"},
                     {"role": "user", "content": st.session_state.last_request['last_report']},
-                    {"role": "user", "content": question}
+                    {"role": "user", "content": suivi_question}
                 ],
                 "temperature": 0.6,
                 "max_tokens": 1500,
@@ -371,6 +372,19 @@ if st.session_state.last_request['last_report']:
                     st.error("Erreur de réponse")
             except Exception as e:
                 st.error(f"Erreur traitement: {e}")
+
+    # Bouton Nouvelle recherche
+    if st.button("🔁 Nouvelle recherche"):
+        st.session_state.last_request = {
+            'date': None,
+            'entreprise': None,
+            'mode': None,
+            'tokens': None,
+            'last_report': None,
+            'pdf_bytes': None
+        }
+        st.session_state.pop("suivi_q", None)
+        st.rerun()
 ...
 
         if question_suivi:
