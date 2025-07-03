@@ -7,12 +7,15 @@ import json
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
 
-# Configuration initiale
-HISTORY_FILE = "search_history.json"
+# Charger les variables d'environnement EN PREMIER
+load_dotenv('USER_CREDENTIALS.env')  # Assurez-vous que le fichier existe
+
+# Configuration des identifiants APRÈS le chargement des variables d'environnement
 USER_CREDENTIALS = {
-    "admin": os.getenv("ADMIN_PASSWORD", "admin"),
-    "NPI": os.getenv("COMMERCIAL1_PWD", "Ametis2025"),
-    "commercial2": os.getenv("COMMERCIAL2_PWD", "Commercial456")
+    "admin": os.getenv("ADMIN", "admin"),  # Corrigé pour correspondre à votre .env
+    "NPI": os.getenv("NPI", "Ametis2025"),
+    "OB0": os.getenv("OB0", "Ametis2025"),
+    # Ajoutez les autres utilisateurs selon votre fichier .env
 }
 
 # Configuration de la page
