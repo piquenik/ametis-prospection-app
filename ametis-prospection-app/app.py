@@ -105,7 +105,7 @@ def main_app_interface():
         with col1:
             nom_entreprise = st.text_input("Nom de l'entreprise*", placeholder="Ex: Société XYZ")
             secteur_cible = st.selectbox("Secteur d'activité*", [
-                "Technologie", "Santé", "Finance", "Industrie", "Commerce", "Services"
+                "Agroalimentaire", "Technologie", "Santé", "Finance", "Industrie", "Commerce", "Services"
             ])
         with col2:
             localisation = st.text_input("Localisation*", placeholder="Ville ou région")
