@@ -404,17 +404,192 @@ def execute_additional_analysis(prompt, analysis_type, use_pro_model=True):
 with col_main:
     if recherche_standard or recherche_pro:
         loading_placeholder = st.empty()
+        
+        # Animation de chargement inspirée du loading HTML
         loading_placeholder.markdown("""
-        <div class="loading-container">
-            <div class="loading-logo">🔍</div>
-            <h3 class="loading-text">Ametis Prospect+</h3>
-            <p>Notre équipe analyse les données...</p>
-            <div style="font-size: 1.5rem;">
-                <span style="animation: pulse 2s infinite;">🤖</span>
-                <span style="animation: pulse 2s infinite 0.5s;">📊</span>
-                <span style="animation: pulse 2s infinite 1s;">💼</span>
+        <div style="
+            margin: 0;
+            padding: 0;
+            min-height: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        ">
+            <div style="
+                text-align: center;
+                padding: 40px;
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border-radius: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                min-width: 400px;
+            ">
+                <div style="
+                    color: white;
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin-bottom: 30px;
+                    opacity: 0;
+                    animation: fadeInUp 1s ease-out 0.5s forwards;
+                ">Assistant Ametis</div>
+                
+                <div style="
+                    position: relative;
+                    width: 100%;
+                    height: 80px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 40px;
+                    overflow: hidden;
+                    margin: 20px 0;
+                    border: 2px solid rgba(255, 255, 255, 0.2);
+                ">
+                    <div id="progress-bar" style="
+                        height: 100%;
+                        background: linear-gradient(90deg, #00c851, #007e33);
+                        border-radius: 40px;
+                        width: 0%;
+                        transition: width 0.3s ease;
+                        position: relative;
+                        box-shadow: 0 0 20px rgba(0, 200, 81, 0.3);
+                    ">
+                        <div style="
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+                            animation: shine 2s infinite;
+                        "></div>
+                    </div>
+                    
+                    <div id="logo-container" style="
+                        position: absolute;
+                        top: 50%;
+                        right: 20px;
+                        transform: translateY(-50%);
+                        width: 50px;
+                        height: 50px;
+                        background: white;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        transition: opacity 0.5s ease;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                    ">
+                        <div style="
+                            color: #667eea;
+                            font-size: 24px;
+                            font-weight: bold;
+                        ">🔍</div>
+                    </div>
+                </div>
+                
+                <div id="percentage" style="
+                    color: white;
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-top: 20px;
+                    opacity: 0;
+                    animation: fadeInUp 1s ease-out 1s forwards;
+                ">0%</div>
+                
+                <div id="status-text" style="
+                    color: rgba(255, 255, 255, 0.8);
+                    font-size: 16px;
+                    margin-top: 10px;
+                    opacity: 0;
+                    animation: fadeInUp 1s ease-out 1.5s forwards;
+                ">Initialisation...</div>
+                
+                <div id="completion-message" style="
+                    color: #00c851;
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-top: 20px;
+                    opacity: 0;
+                    transition: opacity 0.5s ease;
+                ">Analyse terminée !</div>
             </div>
         </div>
+        
+        <style>
+            @keyframes shine {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+            
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+        
+        <script>
+            // Simulation de la progression
+            let currentProgress = 0;
+            let logoLoaded = false;
+            
+            const statusMessages = [
+                "Initialisation...",
+                "Connexion à DeepSeek...",
+                "Analyse de l'entreprise...",
+                "Récupération des données...",
+                "Génération du rapport...",
+                "Finalisation...",
+                "Terminé !"
+            ];
+            
+            function updateProgress() {
+                const progressBar = document.getElementById('progress-bar');
+                const logoContainer = document.getElementById('logo-container');
+                const percentage = document.getElementById('percentage');
+                const statusText = document.getElementById('status-text');
+                const completionMessage = document.getElementById('completion-message');
+                
+                if (currentProgress < 100) {
+                    const increment = Math.random() * 15 + 5;
+                    currentProgress = Math.min(currentProgress + increment, 100);
+                    
+                    if (progressBar) progressBar.style.width = currentProgress + '%';
+                    if (percentage) percentage.textContent = Math.round(currentProgress) + '%';
+                    
+                    const statusIndex = Math.floor((currentProgress / 100) * (statusMessages.length - 1));
+                    if (statusText) statusText.textContent = statusMessages[statusIndex];
+                    
+                    if (currentProgress >= 40 && !logoLoaded && logoContainer) {
+                        logoContainer.style.opacity = '1';
+                        logoLoaded = true;
+                    }
+                    
+                    if (currentProgress < 100) {
+                        setTimeout(updateProgress, Math.random() * 500 + 200);
+                    } else {
+                        if (statusText) statusText.textContent = statusMessages[statusMessages.length - 1];
+                        setTimeout(() => {
+                            if (completionMessage) completionMessage.style.opacity = '1';
+                        }, 500);
+                    }
+                }
+            }
+            
+            // Démarrer l'animation après 1 seconde
+            setTimeout(updateProgress, 1000);
+        </script>
         """, unsafe_allow_html=True)
 
         with st.spinner("Analyse en cours..."):
@@ -430,6 +605,9 @@ with col_main:
             }
 
             response = make_api_request(payload, timeout=120 if recherche_pro else 60)
+            
+            # Petit délai pour laisser l'animation se terminer
+            time.sleep(2)
             loading_placeholder.empty()
 
             if response and response.status_code == 200:
