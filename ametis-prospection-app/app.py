@@ -37,7 +37,7 @@ Structure :
 3. Chiffres clés s'ils sont publics (CA, effectifs, usines...)
 4. Signaux d'actualité ou transformation industrielle
 5. Recherche active de contacts : responsable qualité, production, technique, achats, marketing
-6. Email de prospection combiné (convaincant, B2B, français professionnel)
+
     """
 
     data = {
