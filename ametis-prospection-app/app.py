@@ -71,7 +71,7 @@ if not check_password():
     st.stop()
 
 # Header
-st.title("📊 Assistant Prospection Ametis")
+st.title("🤖 Assistant Prospection Ametis")
 st.markdown("---")
 
 # Paramètres
@@ -84,7 +84,7 @@ with st.expander("⚙️ Paramètres avancés", expanded=False):
 
 # Formulaire de recherche
 with st.form("recherche_form"):
-    nom_entreprise = st.text_input("Nom de l'entreprise*")
+    nom_entreprise = st.text_input("Nom de l'entreprise*(Indiquer idéalement le nom + dep + ville ex: Actibio 53 Changé")
     secteur_cible = st.selectbox(
         "Secteur d'activité*",
         ["Agroalimentaire", "Pharma/Cosmétique", "Logistique", 
