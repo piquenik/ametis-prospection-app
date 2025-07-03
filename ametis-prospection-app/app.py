@@ -51,17 +51,15 @@ headers = {
     "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"
 }
 
-# --- Prompt expert CORRIGÉ ---
-PROMPT_EXPERT = f"""
-Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-précise pour :
-- Entreprise : {nom_entreprise}
-- Secteur : {secteur_cible}
+# --- Prompt expert REVISÉ et TESTÉ ---
+PROMPT_TEMPLATE = """Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-précise pour :
+- Entreprise : {entreprise}
+- Secteur : {secteur}
 
 ### Exigences strictes :
 1. Structure Markdown EXACTE comme dans le template
 2. Sources vérifiables pour tous les chiffres
 3. Contacts réels uniquement (sinon "Non trouvé")
-4. Analyse industrielle pertinente
 
 ### Template OBLIGATOIRE :
 ```markdown
@@ -92,3 +90,61 @@ Tu es un analyste B2B expert pour Ametis. Génère une fiche entreprise ultra-pr
 - Production : [Nom] | [Contact] | [Tel]
 - Qualité : [Nom] | [Contact] | [Tel]
 - Technique : [Nom] | [Contact] | [Tel]
+```"""
+
+# Formatage séparé pour éviter les problèmes de f-string
+PROMPT_EXPERT = PROMPT_TEMPLATE.format(entreprise=nom_entreprise, secteur=secteur_cible)
+
+if btn_standard or btn_pro:
+    # --- Configuration de la requête ---
+    payload = {
+        "model": "deepseek-reasoner" if btn_pro else "deepseek-chat",
+        "messages": [
+            {
+                "role": "system",
+                "content": "Tu es un assistant expert en intelligence économique B2B. Réponses factuelles et structurées."
+            },
+            {"role": "user", "content": PROMPT_EXPERT}
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "web_search": btn_pro
+    }
+
+    # --- Execution ---
+    with st.status("🔍 Analyse en cours...", expanded=True) as status:
+        try:
+            progress_bar = st.progress(0)
+            for i in range(100):
+                time.sleep(0.03 if btn_pro else 0.01)
+                progress_bar.progress(i + 1)
+
+            timeout = 120 if btn_pro else 60
+            response = requests.post(endpoint, headers=headers, json=payload, timeout=timeout)
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                
+                st.success(f"✅ Analyse terminée (Tokens: {result['usage']['total_tokens']})")
+                if btn_pro:
+                    st.info("🌐 Recherche web activée | Mode Reasoner R1")
+                
+                st.divider()
+                st.markdown(content)
+                
+            else:
+                st.error(f"Erreur API {response.status_code}")
+                st.code(response.text, language="json")
+
+        except Exception as e:
+            st.error(f"Erreur : {str(e)}")
+        finally:
+            status.update(label="Analyse complète", state="complete")
+
+# --- Sidebar ---
+with st.sidebar:
+    st.header("Journal")
+    st.code(f"Dernière requête:\n{time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Entreprise: {nom_entreprise}\n"
+            f"Mode: {'PRO' if btn_pro else 'Standard'}")
