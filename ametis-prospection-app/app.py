@@ -11,8 +11,8 @@ from fpdf import FPDF
 # Configuration initiale
 HISTORY_FILE = "search_history.json"
 USER_CREDENTIALS = {
-    "admin": os.getenv("ADMIN_PASSWORD", "AdminAmetis2025"),
-    "commercial1": os.getenv("COMMERCIAL1_PWD", "Commercial123"),
+    "admin": os.getenv("ADMIN_PASSWORD", "admin"),
+    "NPI": os.getenv("COMMERCIAL1_PWD", "Ametis2025"),
     "commercial2": os.getenv("COMMERCIAL2_PWD", "Commercial456")
 }
 
