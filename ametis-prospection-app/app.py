@@ -36,8 +36,8 @@ Structure :
 2. Description de l'activité (2–3 phrases)
 3. Chiffres clés s'ils sont publics (CA, effectifs, usines...)
 4. Signaux d'actualité ou transformation industrielle
-5. Recherche active de contacts avec adresse mails : responsable qualité, production, technique, achats, marketing
-
+5. Recherche active de contacts : responsable qualité, production, technique, achats, marketing. S'ils ne sont pas trouvables, indique clairement : "Contact non trouvé, essayer de faire une recherche approfondie."
+6. Email de prospection combiné (convaincant, B2B, français professionnel)
     """
 
     data = {
@@ -55,9 +55,9 @@ Structure :
         compteur = st.empty()
         start_time = time.time()
 
-        for i in range(30):
+        for i in range(60):
             time.sleep(1)
-            progress_bar.progress((i + 1) / 50)
+            progress_bar.progress((i + 1) / 60)
             compteur.markdown(f"🕒 Temps écoulé : {i + 1} sec")
 
         try:
