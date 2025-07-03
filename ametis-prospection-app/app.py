@@ -83,7 +83,7 @@ if not check_password():
     st.stop()
 
 # Header
-st.title("📊 Assistant Prospection Ametis")
+st.title("🤖 Assistant Prospection Ametis VBeta V1,1DS")
 st.markdown("---")
 
 # Paramètres
