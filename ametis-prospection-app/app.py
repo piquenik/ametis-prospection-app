@@ -328,66 +328,7 @@ if st.session_state.last_request['last_report']:
     st.subheader("🔁 Question de suivi (mode Raisonnement avec sources)")
     question_suivi = st.text_input("Posez une question de suivi sur cette entreprise :")
 
-    # Bouton suggestion tournée
-    if st.button("🗺️ Proposer une tournée de prospection (50 km)", key="suggest_tournee"):
-        st.session_state.suivi_q = (
-            "Établis une tournée de prospection dans un rayon de 50 km autour de l'adresse de l'entreprise mentionnée. "
-            "Propose un tableau avec 10 entreprises similaires ou complémentaires, incluant :\n"
-            "- Nom de l'entreprise\n- Adresse complète\n- Distance estimée (en km) par rapport à l'entreprise cible\n"
-            "Classe-les par proximité. Si possible, choisis des entreprises du même secteur ou susceptibles d'être intéressées par nos solutions de marquage industriel."
-        )
-        st.rerun()
-
-    # Exécution de la question de suivi
-    suivi_question = question_suivi or st.session_state.get("suivi_q")
-    if suivi_question:
-        with st.spinner("Raisonnement en cours..."):
-            payload = {
-                "model": "deepseek-reasoner",
-                "messages": [
-                    {"role": "system", "content": "Expert en analyse B2B"},
-                    {"role": "user", "content": st.session_state.last_request['last_report']},
-                    {"role": "user", "content": suivi_question}
-                ],
-                "temperature": 0.6,
-                "max_tokens": 1500,
-                "web_search": True
-            }
-            try:
-                response = requests.post(
-                    "https://api.deepseek.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"},
-                    json=payload,
-                    timeout=180
-                )
-                if response.status_code == 200:
-                    result = response.json()
-                    followup = result["choices"][0]["message"]["content"]
-                    st.markdown("---")
-                    st.markdown(
-                        f'<div class="report-container"><div style="text-align:right;font-size:0.9rem;color:#888">🧠 RAISONNEMENT 🌐</div>{followup}</div>',
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.error("Erreur de réponse")
-            except Exception as e:
-                st.error(f"Erreur traitement: {e}")
-
-    # Bouton Nouvelle recherche
-    if st.button("🔁 Nouvelle recherche"):
-        st.session_state.last_request = {
-            'date': None,
-            'entreprise': None,
-            'mode': None,
-            'tokens': None,
-            'last_report': None,
-            'pdf_bytes': None
-        }
-        st.session_state.pop("suivi_q", None)
-        st.rerun()
-...
-
-        if question_suivi:
+    if question_suivi:
         with st.spinner("Analyse complémentaire en cours..."):
             suivi_payload = {
                 "model": "deepseek-reasoner",
