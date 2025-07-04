@@ -2,5 +2,13 @@
   { "username": "admin", "password": "Admin2025", "role": "admin" },
   { "username": "NPI", "password": "Ametis2025", "role": "user" },
   { "username": "OBO", "password": "Ametis2025", "role": "user" },
+  { "username": "LCA", "password": "Ametis2025", "role": "user" },
+  { "username": "GBE", "password": "Ametis2025", "role": "user" },
+  { "username": "PMO", "password": "Ametis2025", "role": "user" },
+  { "username": "WVA", "password": "Ametis2025", "role": "user" },
+  { "username": "JNB", "password": "Ametis2025", "role": "user" },
+  { "username": "YCR", "password": "Ametis2025", "role": "user" },
+  { "username": "SSL", "password": "Ametis2025", "role": "user" },
+  { "username": "SBP", "password": "Ametis2025", "role": "user" },
   { "username": "NDS", "password": "Ametis2025", "role": "user" }
 ]
