@@ -809,30 +809,32 @@ if st.session_state.role == "admin":
     storage_mode = "SQLite" if SQLITE_AVAILABLE else "JSON"
     st.info(f"💾 Mode de stockage actuel: **{storage_mode}**")
     
-    # Bouton de nettoyage
-    if SQLITE_AVAILABLE:
-        if st.button("🧹 Nettoyer logs > 30 jours"):
+    # Boutons de gestion
+    col1, col2 = st.columns(2)
+    with col1:
+        if SQLITE_AVAILABLE and st.button("🧹 Nettoyer logs > 30 jours"):
             cleanup_old_logs(30)
             st.success("Logs anciens supprimés")
     
-    # Afficher le nombre total de logs
-    try:
-        if SQLITE_AVAILABLE:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM global_logs")
-            total_logs = cursor.fetchone()[0]
-            conn.close()
-        else:
-            if os.path.exists(LOG_FILE):
-                with open(LOG_FILE, "r", encoding="utf-8") as f:
-                    logs = json.load(f)
-                total_logs = len(logs)
+    with col2:
+        # Afficher le nombre total de logs
+        try:
+            if SQLITE_AVAILABLE:
+                conn = sqlite3.connect(DB_FILE)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM global_logs")
+                total_logs = cursor.fetchone()[0]
+                conn.close()
             else:
-                total_logs = 0
-        st.info(f"📊 Total des logs: {total_logs}")
-    except Exception as e:
-        st.error(f"Erreur comptage logs: {e}")
+                if os.path.exists(LOG_FILE):
+                    with open(LOG_FILE, "r", encoding="utf-8") as f:
+                        logs = json.load(f)
+                    total_logs = len(logs)
+                else:
+                    total_logs = 0
+            st.info(f"📊 Total des logs: {total_logs}")
+        except Exception as e:
+            st.error(f"Erreur comptage logs: {e}")
     
     try:
         # Récupération des logs
@@ -926,9 +928,9 @@ if st.session_state.role == "admin":
             except Exception as e:
                 st.error(f"Erreur export: {e}")
 
-    # Message de statut persistance (seulement pour les admins)
-    st.markdown("---")
-    if SQLITE_AVAILABLE:
-        st.info("💾 **Logs SQLite persistants activés** - Vos données sont conservées même après redémarrage")
-    else:
-        st.warning("📁 **Mode fichier JSON** - Données conservées mais moins robustes que SQLite")
+# Message de statut persistance
+st.markdown("---")
+if SQLITE_AVAILABLE:
+    st.info("💾 **Logs SQLite persistants activés** - Vos données sont conservées même après redémarrage")
+else:
+    st.warning("📁 **Mode fichier JSON** - Données conservées mais moins robustes que SQLite")
