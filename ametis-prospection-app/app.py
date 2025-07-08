@@ -7,18 +7,10 @@ import csv
 from datetime import datetime, timezone, timedelta
 from fpdf import FPDF
 
-# Import SQLite3 avec gestion d'erreur
-try:
-    import sqlite3
-    SQLITE_AVAILABLE = True
-except ImportError:
-    SQLITE_AVAILABLE = False
-    st.warning("SQLite non disponible, utilisation du mode fichier JSON de secours")
-
 # Configuration de la page
 st.set_page_config(
     page_title="Assistant Prospection Ametis VBeta V1,1DS",
-    layout="wide",
+    layout="wide",  # Changé pour permettre plus d'espace
     page_icon="🤖",
     menu_items={
         'Get Help': None,
@@ -29,162 +21,7 @@ st.set_page_config(
 
 # Fichiers de config
 USER_FILE = "users.json"
-DB_FILE = "persistent_logs.db"
-LOG_FILE = "global_log.json"  # Fallback pour compatibilité
-
-# Initialisation de la base de données avec fallback
-def init_database():
-    """Initialise la base de données SQLite pour les logs persistants ou utilise JSON"""
-    if not SQLITE_AVAILABLE:
-        return False
-    
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        
-        # Créer la table des logs si elle n'existe pas
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS global_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                datetime TEXT NOT NULL,
-                user TEXT NOT NULL,
-                entreprise TEXT NOT NULL,
-                secteur TEXT NOT NULL,
-                mode TEXT NOT NULL,
-                tokens INTEGER NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        st.error(f"Erreur initialisation SQLite: {e}")
-        return False
-
-# Fonction pour ajouter un log avec fallback JSON
-def add_log_entry(datetime_str, user, entreprise, secteur, mode, tokens):
-    """Ajoute une entrée dans les logs persistants (SQLite ou JSON)"""
-    # Essayer SQLite d'abord
-    if SQLITE_AVAILABLE:
-        try:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                INSERT INTO global_logs (datetime, user, entreprise, secteur, mode, tokens)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (datetime_str, user, entreprise, secteur, mode, tokens))
-            
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            st.warning(f"Erreur SQLite, basculement vers JSON: {e}")
-    
-    # Fallback vers JSON
-    try:
-        log_entry = {
-            "datetime": datetime_str,
-            "user": user,
-            "entreprise": entreprise,
-            "secteur": secteur,
-            "mode": mode,
-            "tokens": tokens
-        }
-        
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                logs = json.load(f)
-        else:
-            logs = []
-        
-        logs.append(log_entry)
-        
-        with open(LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump(logs[-100:], f, indent=2)  # Garder seulement les 100 derniers
-        
-        return True
-    except Exception as e:
-        st.error(f"Erreur lors de l'ajout du log JSON: {e}")
-        return False
-
-# Fonction pour récupérer les logs avec fallback JSON
-def get_logs(limit=100):
-    """Récupère les logs depuis SQLite ou JSON"""
-    # Essayer SQLite d'abord
-    if SQLITE_AVAILABLE:
-        try:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT datetime, user, entreprise, secteur, mode, tokens
-                FROM global_logs
-                ORDER BY created_at DESC
-                LIMIT ?
-            ''', (limit,))
-            
-            logs = cursor.fetchall()
-            conn.close()
-            
-            # Convertir en format dictionnaire
-            return [
-                {
-                    "datetime": log[0],
-                    "user": log[1],
-                    "entreprise": log[2],
-                    "secteur": log[3],
-                    "mode": log[4],
-                    "tokens": log[5]
-                }
-                for log in logs
-            ]
-        except Exception as e:
-            st.warning(f"Erreur SQLite, lecture JSON: {e}")
-    
-    # Fallback vers JSON
-    try:
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                logs = json.load(f)
-            return logs[::-1][:limit]  # Inverser et limiter
-        else:
-            return []
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des logs JSON: {e}")
-        return []
-
-# Fonction pour nettoyer les anciens logs
-def cleanup_old_logs(days_to_keep=30):
-    """Supprime les logs plus anciens que X jours"""
-    if not SQLITE_AVAILABLE:
-        st.info("Nettoyage disponible uniquement avec SQLite")
-        return
-    
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        
-        cutoff_date = datetime.now() - timedelta(days=days_to_keep)
-        
-        cursor.execute('''
-            DELETE FROM global_logs 
-            WHERE created_at < ?
-        ''', (cutoff_date,))
-        
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        st.error(f"Erreur lors du nettoyage des logs: {e}")
-
-# Initialiser la base de données au démarrage
-sqlite_initialized = init_database()
-if sqlite_initialized:
-    st.success("✅ Base de données SQLite initialisée")
-else:
-    st.info("📁 Mode fichier JSON activé")
+LOG_FILE = "global_log.json"
 
 @st.cache_data
 def load_users():
@@ -490,8 +327,8 @@ def execute_additional_analysis(prompt, analysis_type, use_pro_model=True):
                 {"role": "system", "content": "Expert en analyse B2B et prospection commerciale"},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7,
-            "max_tokens": 1500,
+            "temperature": 0.7,  # Valeur par défaut si temperature n'est pas définie
+            "max_tokens": 1500,  # Valeur par défaut si max_tokens n'est pas définie
             "web_search": True
         }
 
@@ -596,10 +433,8 @@ with col_main:
 
                 # Mise à jour du journal
                 french_tz = timezone(timedelta(hours=2))
-                current_datetime = datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S")
-                
                 st.session_state.last_request = {
-                    'date': current_datetime,
+                    'date': datetime.now(french_tz).strftime("%Y-%m-%d %H:%M:%S"),
                     'entreprise': nom_entreprise,
                     'mode': "PRO" if recherche_pro else "Standard",
                     'tokens': tokens_used,
@@ -608,7 +443,7 @@ with col_main:
                 }
 
                 st.session_state.history.append({
-                    'date': current_datetime,
+                    'date': st.session_state.last_request['date'],
                     'entreprise': nom_entreprise,
                     'mode': "PRO" if recherche_pro else "Standard",
                     'tokens': tokens_used,
@@ -618,23 +453,26 @@ with col_main:
 
                 st.session_state.history = st.session_state.history[-10:]
 
-                # Log persistant avec SQLite
-                success = add_log_entry(
-                    current_datetime,
-                    st.session_state.current_user,
-                    nom_entreprise,
-                    secteur_cible,
-                    "PRO" if recherche_pro else "Standard",
-                    tokens_used
-                )
-                
-                if success:
-                    if SQLITE_AVAILABLE:
-                        st.success("✅ Recherche enregistrée en base SQLite persistante")
+                # Log global admin
+                try:
+                    log_entry = {
+                        "datetime": st.session_state.last_request['date'],
+                        "user": st.session_state.current_user,
+                        "entreprise": nom_entreprise,
+                        "secteur": secteur_cible,
+                        "mode": st.session_state.last_request['mode'],
+                        "tokens": tokens_used
+                    }
+                    if os.path.exists(LOG_FILE):
+                        with open(LOG_FILE, "r", encoding="utf-8") as f:
+                            logs = json.load(f)
                     else:
-                        st.success("✅ Recherche enregistrée en fichier JSON")
-                else:
-                    st.warning("⚠️ Recherche effectuée mais erreur d'enregistrement")
+                        logs = []
+                    logs.append(log_entry)
+                    with open(LOG_FILE, "w", encoding="utf-8") as f:
+                        json.dump(logs[-100:], f, indent=2)
+                except Exception as e:
+                    st.warning(f"Erreur journalisation: {e}")
 
                 # Affichage du résultat
                 st.markdown("---")
@@ -787,117 +625,34 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# Zone admin avec logs persistants
+# Zone admin (en bas)
 if st.session_state.role == "admin":
     st.markdown("---")
-    st.subheader("🔒 Journal des Recherches Persistant (admin)")
-    
-    # Bouton pour nettoyer les anciens logs
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🧹 Nettoyer logs > 30 jours"):
-            cleanup_old_logs(30)
-            st.success("Logs anciens supprimés")
-    
-    with col2:
-        # Afficher le nombre total de logs
-        try:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM global_logs")
-            total_logs = cursor.fetchone()[0]
-            conn.close()
-            st.info(f"📊 Total des logs: {total_logs}")
-        except Exception as e:
-            st.error(f"Erreur comptage logs: {e}")
-    
+    st.subheader("🔒 Journal des Recherches (admin)")
     try:
-        # Récupération des logs depuis SQLite
-        log_data = get_logs(100)  # Derniers 100 logs
-        
-        if log_data:
-            # Affichage sous forme de dataframe
-            import pandas as pd
-            df = pd.DataFrame(log_data)
-            st.dataframe(df, use_container_width=True)
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                log_data = json.load(f)
+            if log_data:
+                st.dataframe(log_data[::-1])
 
-            # Génération CSV depuis SQLite
-            csv_data = "datetime,user,entreprise,secteur,mode,tokens\n" + "\n".join(
-                f"{r['datetime']},{r['user']},{r['entreprise']},{r['secteur']},{r['mode']},{r['tokens']}"
-                for r in log_data
-            )
-
-            st.download_button(
-                label="📃 Télécharger CSV (Logs Persistants)",
-                data=csv_data,
-                file_name=f"journal_recherches_persistant_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                mime="text/csv",
-                key=f"csv_persistent_{datetime.now().isoformat()}",
-                use_container_width=True
-            )
-            
-            # Statistiques rapides
-            st.markdown("### 📈 Statistiques")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                total_requests = len(log_data)
-                st.metric("Total requêtes", total_requests)
-            
-            with col2:
-                if log_data:
-                    total_tokens = sum(r['tokens'] for r in log_data)
-                    st.metric("Total tokens", f"{total_tokens:,}")
-                else:
-                    st.metric("Total tokens", 0)
-            
-            with col3:
-                if log_data:
-                    unique_users = len(set(r['user'] for r in log_data))
-                    st.metric("Utilisateurs actifs", unique_users)
-                else:
-                    st.metric("Utilisateurs actifs", 0)
-        else:
-            st.info("Aucune donnée persistante enregistrée.")
-    except Exception as e:
-        st.error(f"Erreur chargement journal persistant: {e}")
-        
-    # Options avancées pour admin
-    with st.expander("🔧 Options Avancées Admin"):
-        st.markdown("**Gestion de la base de données:**")
-        
-        if st.button("🗑️ Vider complètement les logs", type="secondary"):
-            try:
-                conn = sqlite3.connect(DB_FILE)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM global_logs")
-                conn.commit()
-                conn.close()
-                st.success("Tous les logs ont été supprimés")
-            except Exception as e:
-                st.error(f"Erreur suppression: {e}")
-        
-        st.markdown("**Export de sauvegarde:**")
-        if st.button("💾 Exporter sauvegarde complète"):
-            try:
-                all_logs = get_logs(10000)  # Tous les logs
-                backup_data = {
-                    "export_date": datetime.now().isoformat(),
-                    "total_logs": len(all_logs),
-                    "logs": all_logs
-                }
-                backup_json = json.dumps(backup_data, indent=2, ensure_ascii=False)
-                
-                st.download_button(
-                    label="💾 Télécharger sauvegarde JSON",
-                    data=backup_json,
-                    file_name=f"backup_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
-                    mime="application/json",
-                    key="backup_download"
+                # Génération CSV
+                csv_data = "datetime,user,entreprise,secteur,mode,tokens\n" + "\n".join(
+                    f"{r['datetime']},{r['user']},{r['entreprise']},{r['secteur']},{r['mode']},{r['tokens']}"
+                    for r in log_data
                 )
-            except Exception as e:
-                st.error(f"Erreur export: {e}")
 
-# Message de statut persistance
-st.markdown("---")
-st.info("💾 **Logs persistants activés** - Vos données sont conservées même après redémarrage de l'application")
+                st.download_button(
+                    label="📃 Télécharger CSV",
+                    data=csv_data,
+                    file_name="journal_recherches.csv",
+                    mime="text/csv",
+                    key=f"csv_{datetime.now().isoformat()}",
+                    use_container_width=True
+                )
+            else:
+                st.info("Aucune donnée enregistrée.")
+        else:
+            st.info("Journal non encore créé.")
+    except Exception as e:
+        st.error(f"Erreur chargement journal: {e}")
