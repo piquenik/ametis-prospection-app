@@ -800,44 +800,19 @@ if st.session_state.role == "admin":
             st.success("Logs anciens supprimés")
     
     with col2:
-# Zone admin avec logs persistants
-if st.session_state.role == "admin":
-    st.markdown("---")
-    st.subheader("🔒 Journal des Recherches Persistant (admin)")
-    
-    # Afficher le mode de stockage
-    storage_mode = "SQLite" if SQLITE_AVAILABLE else "JSON"
-    st.info(f"💾 Mode de stockage actuel: **{storage_mode}**")
-    
-    # Boutons de gestion
-    col1, col2 = st.columns(2)
-    with col1:
-        if SQLITE_AVAILABLE and st.button("🧹 Nettoyer logs > 30 jours"):
-            cleanup_old_logs(30)
-            st.success("Logs anciens supprimés")
-    
-    with col2:
         # Afficher le nombre total de logs
         try:
-            if SQLITE_AVAILABLE:
-                conn = sqlite3.connect(DB_FILE)
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM global_logs")
-                total_logs = cursor.fetchone()[0]
-                conn.close()
-            else:
-                if os.path.exists(LOG_FILE):
-                    with open(LOG_FILE, "r", encoding="utf-8") as f:
-                        logs = json.load(f)
-                    total_logs = len(logs)
-                else:
-                    total_logs = 0
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM global_logs")
+            total_logs = cursor.fetchone()[0]
+            conn.close()
             st.info(f"📊 Total des logs: {total_logs}")
         except Exception as e:
             st.error(f"Erreur comptage logs: {e}")
     
     try:
-        # Récupération des logs
+        # Récupération des logs depuis SQLite
         log_data = get_logs(100)  # Derniers 100 logs
         
         if log_data:
@@ -846,16 +821,16 @@ if st.session_state.role == "admin":
             df = pd.DataFrame(log_data)
             st.dataframe(df, use_container_width=True)
 
-            # Génération CSV
+            # Génération CSV depuis SQLite
             csv_data = "datetime,user,entreprise,secteur,mode,tokens\n" + "\n".join(
                 f"{r['datetime']},{r['user']},{r['entreprise']},{r['secteur']},{r['mode']},{r['tokens']}"
                 for r in log_data
             )
 
             st.download_button(
-                label=f"📃 Télécharger CSV ({storage_mode})",
+                label="📃 Télécharger CSV (Logs Persistants)",
                 data=csv_data,
-                file_name=f"journal_recherches_{storage_mode.lower()}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                file_name=f"journal_recherches_persistant_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                 mime="text/csv",
                 key=f"csv_persistent_{datetime.now().isoformat()}",
                 use_container_width=True
@@ -883,25 +858,21 @@ if st.session_state.role == "admin":
                 else:
                     st.metric("Utilisateurs actifs", 0)
         else:
-            st.info("Aucune donnée enregistrée.")
+            st.info("Aucune donnée persistante enregistrée.")
     except Exception as e:
-        st.error(f"Erreur chargement journal: {e}")
+        st.error(f"Erreur chargement journal persistant: {e}")
         
     # Options avancées pour admin
     with st.expander("🔧 Options Avancées Admin"):
-        st.markdown(f"**Gestion du stockage {storage_mode}:**")
+        st.markdown("**Gestion de la base de données:**")
         
         if st.button("🗑️ Vider complètement les logs", type="secondary"):
             try:
-                if SQLITE_AVAILABLE:
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM global_logs")
-                    conn.commit()
-                    conn.close()
-                else:
-                    if os.path.exists(LOG_FILE):
-                        os.remove(LOG_FILE)
+                conn = sqlite3.connect(DB_FILE)
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM global_logs")
+                conn.commit()
+                conn.close()
                 st.success("Tous les logs ont été supprimés")
             except Exception as e:
                 st.error(f"Erreur suppression: {e}")
@@ -912,7 +883,6 @@ if st.session_state.role == "admin":
                 all_logs = get_logs(10000)  # Tous les logs
                 backup_data = {
                     "export_date": datetime.now().isoformat(),
-                    "storage_mode": storage_mode,
                     "total_logs": len(all_logs),
                     "logs": all_logs
                 }
@@ -921,7 +891,7 @@ if st.session_state.role == "admin":
                 st.download_button(
                     label="💾 Télécharger sauvegarde JSON",
                     data=backup_json,
-                    file_name=f"backup_logs_{storage_mode.lower()}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                    file_name=f"backup_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
                     mime="application/json",
                     key="backup_download"
                 )
@@ -930,7 +900,4 @@ if st.session_state.role == "admin":
 
 # Message de statut persistance
 st.markdown("---")
-if SQLITE_AVAILABLE:
-    st.info("💾 **Logs SQLite persistants activés** - Vos données sont conservées même après redémarrage")
-else:
-    st.warning("📁 **Mode fichier JSON** - Données conservées mais moins robustes que SQLite")
+st.info("💾 **Logs persistants activés** - Vos données sont conservées même après redémarrage de l'application")
